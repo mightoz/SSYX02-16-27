@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-PKG = 'numpy'
+PKG = 'robotclient'
 
 import roslib; roslib.load_manifest(PKG)
 import rospy
@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 #Initializes node and creates publisher. 
 def talker():
-    pub = rospy.Publisher('floats', numpy_msg(Floats),queue_size=10)
+    pub = rospy.Publisher('coordinates', numpy_msg(Floats),queue_size=10)
     rospy.init_node('talker', anonymous=True)
     r = rospy.Rate(10)
     while not rospy.is_shutdown():
