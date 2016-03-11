@@ -30,7 +30,7 @@ def main():
     posx = posNp[0]
     posy = posNp[1]
 
-    postwo = Floats(posx[0], posy[0])
+    postwo = Floats(posx[0], posy[1])
 
     ConnectionRequest.dcReq(s, 0)  # close the socket that was opened above.
 

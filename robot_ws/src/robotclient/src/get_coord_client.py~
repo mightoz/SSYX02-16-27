@@ -8,7 +8,7 @@ def get_coord_client():
     rospy.wait_for_service('get_coord')
     try:
         get_coord = rospy.ServiceProxy('get_coord', GetCoord)
-        resp1 = get_coord(1)
+        resp1 = get_coord()
         return resp1.data
     except rospy.ServiceException, e:
         print "Service call failed: %s"%e
