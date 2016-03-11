@@ -42,7 +42,7 @@ def handle_moveRobot(req):
     print rospy.get_name(), "Finished Moving"
 
     ack = 1
-    return MoveRobotResponse(ack)
+    return RotationResponse(ack)
 
 
     

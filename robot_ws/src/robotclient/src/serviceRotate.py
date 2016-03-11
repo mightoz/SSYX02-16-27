@@ -42,7 +42,7 @@ def handle_rotateRobot(req):
     print rospy.get_name(), "Finished Rotatating"
 
     ack = 1
-    return RotationResponse(ack)
+    return RotateRobotResponse(ack)
 
 
     
@@ -53,6 +53,6 @@ def rotateRobot_server():
     rospy.spin()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     rotateRobot_server()
 
