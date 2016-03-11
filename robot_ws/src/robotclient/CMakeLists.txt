@@ -53,9 +53,10 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Generate services in the 'srv' folder
  add_service_files(
-	FILES	
-MoveRobot.srv
-RotateRobot.srv
+    FILES	
+    MoveRobot.srv
+    RotateRobot.srv
+    GetCoord.srv
  )
 
 ## Generate actions in the 'action' folder
