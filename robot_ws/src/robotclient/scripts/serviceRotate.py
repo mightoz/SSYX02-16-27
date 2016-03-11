@@ -2,6 +2,8 @@
 PKG = 'numpy'
 import roslib; roslib.load_manifest(PKG)
 
+from robotclient.srv import *
+
 import rospy
 from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
@@ -13,7 +15,7 @@ import numpy as np
 
 #Function that moves robot given command.
 def handle_rotateRobot(req):
-    int ack = 0 #Currently executing
+    ack = 0 #Currently executing
     print rospy.get_name(), "Rotatating: %s"%str(req.deg)
 
     pub = rospy.Publisher("RosAria/cmd_vel", Twist, queue_size=10)    
@@ -52,5 +54,5 @@ def rotateRobot_server():
 
 
 if __name__ == '__main__':
-    serviceRotate()
+    rotateRobot_server()
 
