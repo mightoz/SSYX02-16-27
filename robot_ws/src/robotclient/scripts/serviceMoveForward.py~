@@ -9,6 +9,8 @@ from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 import numpy as np
 
+import robotclient.srv import *
+
 
 
 #Function that moves robot given command.
@@ -46,7 +48,7 @@ def handle_moveRobot(req):
     
 def moveRobot_server():
     rospy.init_node('moveRobot_server')
-    s=rospy.Service('moveRobot', Move, handle_moveRobot)
+    s=rospy.Service('moveRobot', MoveRobot, handle_moveRobot)
     print rospy.get_name(), "Ready to move"
     rospy.spin()
 

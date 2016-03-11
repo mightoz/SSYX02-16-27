@@ -46,7 +46,7 @@ def handle_rotateRobot(req):
     
 def rotateRobot_server():
     rospy.init_node('rotateRobot_server')
-    s=rospy.Service('rotateRobot', RotateRobot, handle_rotateRobot)
+    s=rospy.Service('rotateRobot', Rotation, handle_rotateRobot)
     print rospy.get_name(), "Ready to rotate"
     rospy.spin()
 
