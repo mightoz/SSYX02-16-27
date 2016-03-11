@@ -2,8 +2,8 @@
 
 from robotclient.srv import *
 from robotclient.msg import *
+from robotclient.src.CoordMeasuring import *
 import rospy
-import Measure
 
 def handle_get_coord(req):
     pos = Measure.main()
