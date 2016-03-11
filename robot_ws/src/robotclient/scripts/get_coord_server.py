@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from robotclient.srv import *
+from robotclient.msg import *
 import rospy
 import Measure
 
