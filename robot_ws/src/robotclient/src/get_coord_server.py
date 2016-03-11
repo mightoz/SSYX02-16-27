@@ -2,7 +2,7 @@
 
 from robotclient.srv import *
 from robotclient.msg import *
-from robotclient.src.CoordMeasuring import * 
+import Measure
 import rospy
 
 def handle_get_coord(req):
