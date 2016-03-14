@@ -54,7 +54,7 @@ def updateCoords1(pos):
 
 def main():
     rospy.init_node('masternode')
-    rospy.Subscriber("robot1pos", numpy_msg(Floats), updateCoords1)
+    rospy.Subscriber("testmove", numpy_msg(Floats), moveTo)
     rospy.spin()
 
 def moveTo(coord):
