@@ -3,6 +3,7 @@
 import sys
 import rospy
 from robotclient.srv import *
+from rospy.numpy_msg import numpy_msg
 
 def get_coord_client():
     rospy.wait_for_service('get_coord')

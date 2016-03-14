@@ -4,6 +4,7 @@ from robotclient.srv import *
 from robotclient.msg import *
 import Measure
 import rospy
+from rospy.numpy_msg import numpy_msg
 
 def handle_get_coord(req):
     print "Is connected, wooohohohohohoh"
