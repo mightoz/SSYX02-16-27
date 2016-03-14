@@ -79,8 +79,8 @@ class MainController():
             nextCoordy =  (self.end_node[1] + self.currentpos2[1])/2
             correctPosition.add(nextCoordx, nextCoordy)
         elif (robot==2):
-            nextCoordx = (self.currentpos1[0] + self.master_node[0])/2
-            nextCoordy = (self.currentpos1[1] + self.master_node[1])/2
+            nextCoordx = (self.currentpos2[0] + self.master_node[0])/2
+            nextCoordy = (self.currentpos2[1] + self.master_node[1])/2
             correctPosition.add(nextCoordx, nextCoordy)
         else:  
             pass
@@ -120,7 +120,7 @@ class MainController():
             return self.recordedPositions
 
     def rotate(self,angle):
-        srv = '/rotateRobot1'#+self.activeRobot
+        srv = 'rotateRobot'#+self.activeRobot
         rospy.wait_for_service(srv)
         mvRobot = rospy.ServiceProxy(srv, RotateRobot)
         try:

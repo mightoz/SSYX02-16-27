@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  robotclient
 )
 
 ## System dependencies are found with CMake's conventions
@@ -45,18 +46,17 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Generate messages in the 'msg' folder
 # add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
+#    FILES
+#    Floats.msg
 # )
 
 ## Generate services in the 'srv' folder
- add_service_files(
-   FILES
-   robotclient.MoveRobot.srv
-   robotclient.RotateRobot.srv
-   robotclient.GetCoord.srv
- )
+# add_service_files(
+#   FILES
+#   robotclient.MoveRobot.srv
+#   robotclient.RotateRobot.srv
+#   robotclient.GetCoord.srv
+# )
 
 ## Generate actions in the 'action' folder
 # add_action_files(

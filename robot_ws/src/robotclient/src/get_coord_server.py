@@ -6,6 +6,7 @@ import Measure
 import rospy
 
 def handle_get_coord(req):
+    print "Is connected, wooohohohohohoh"
     pos = Measure.main()
     return GetCoordResponse(pos)
 
