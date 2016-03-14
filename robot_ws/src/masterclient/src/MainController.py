@@ -11,88 +11,93 @@ import numpy as np
 import math
 
 
-class MainNode():
+class MainController():
 
-    robot1coords = np.array([], dtype=np.float32);
-    atGoal = False
-    activeRobot = 1
+    def __init__(self):
 
-    def main(self):
-        rospy.init_node('masternode')
-        rospy.Subscriber("testmove", numpy_msg(Floats), moveTo)
+
+        robot1coords = np.array([], dtype=np.float32);
+        atGoal = False
+        activeRobot = 0
+
+        rospy.Subscriber("testmove", numpy_msg(Floats), self.moveTo)
         rospy.spin()
 
-    def moveTo(coord):
-        global activeRobot
+
+
+    def moveTo(self, coord):
+
+        #ar = self.activeRobot
         recordedPositions = np.array([], dtype=(np.float32, np.float32))
-        targetPos = coord
-        firstPos = getCoords()  # Temporary initialization
-        secondPos = firstPos  # Temporary initialization
-        if (not (np.absolute(targetPos[0] - secondPos[0]) <= 0.1 & np.absolute(targetPos[1] - secondPos[1] <= 0.1))):
-            driveForward()
-            secondPos = getCoords()
-            recordedPositions.add(secondPos[0],secondPos[1])
-            if (not (np.absolute(targetPos[0] - secondPos[0]) <= 0.1 & np.absolute(targetPos[1] - secondPos[1] <= 0.1))):
-                runNextSegment()
+        self.targetPos = coord
+        self.firstPos = self.getCoords()  # Temporary initialization
+        self.secondPos = self.firstPos  # Temporary initialization
+
+        if (not (np.absolute(self.targetPos[0] - self.secondPos[0]) <= 0.1 & np.absolute(self.targetPos[1] - self.secondPos[1] <= 0.1))):
+            self.driveForward()
+            self.secondPos = self.getCoords()
+            recordedPositions.add(self.secondPos[0],self.secondPos[1])
+            if (not (np.absolute(self.targetPos[0] - self.secondPos[0]) <= 0.1 & np.absolute(self.targetPos[1] - self.secondPos[1] <= 0.1))):
+                self.runNextSegment()
         else:
             return recordedPositions;
 
 
 
-        def runNextSegment():
-            angle = calculateAngle(firstPos, secondPos, targetPos)
-            rotate(angle)
-            driveForward()
-            firstPos = secondPos
-            secondPos = getCoords()
-            recordedPositions.add(secondPos[0],secondPos[1])
-            if (not (np.absolute(targetPos[0] - secondPos[0]) <= 0.1 & np.absolute(targetPos[1] - secondPos[1] <= 0.1))):
-                runNextSegment()
-            else:
-                return recordedPositions
+    def runNextSegment(self):
+        angle = self.calculateAngle(self.firstPos, self.secondPos, self.targetPos)
+        self.rotate(angle)
+        self.driveForward()
+        self.firstPos = self.secondPos
+        self.secondPos = self.getCoords()
 
-        def rotate(angle):
-            srv = 'rotateRobot'+activeRobot
-            rospy.wait_for_service(srv)
-            mvRobot = rospy.ServiceProxy(srv, robotclient.srv.RotateRobot)
-            try:
-                x = mvRobot(angle)
-            except rospy.ServiceException as exc:
-                print("Service did not process request: " + str(exc))
+        self.recordedPositions.append(self.secondPos[0],self.secondPos[1])
+        if (not (np.absolute(self.targetPos[0] - self.secondPos[0]) <= 0.1 & np.absolute(self.targetPos[1] - self.secondPos[1] <= 0.1))):
+            self.runNextSegment()
+        else:
+            return self.recordedPositions
 
-        def driveForward():
-            srv = 'moveRobot'+activeRobot
-            rospy.wait_for_service(srv)
-            mvRobot = rospy.ServiceProxy(srv, robotclient.srv.MoveRobot)
-            try:
-                x = mvRobot(0.2)
-            except rospy.ServiceException as exc:
-                print("Service did not process request: " + str(exc))
+    def rotate(self,angle):
+        srv = 'rotateRobot'+self.activeRobot
+        rospy.wait_for_service(srv)
+        mvRobot = rospy.ServiceProxy(srv, robotclient.srv.RotateRobot)
+        try:
+            x = mvRobot(angle)
+        except rospy.ServiceException as exc:
+            print("Service did not process request: " + str(exc))
+
+    def driveForward(self):
+        srv = 'moveRobot'+self.activeRobot
+        rospy.wait_for_service(srv)
+        mvRobot = rospy.ServiceProxy(srv, robotclient.srv.MoveRobot)
+        try:
+            x = mvRobot(0.2)
+        except rospy.ServiceException as exc:
+            print("Service did not process request: " + str(exc))
 
 
-        def getCoords():
-                srv = 'get_coords'+activeRobot
-                rospy.wait_for_service(srv)
-                get_coords = rospy.ServiceProxy(srv, robotclient.srv.GetCoord)
-                try:
-                    pos = get_coords()
-                    recordedPositions.add(firstPos[0],firstPos[1])
-                except rospy.ServiceException as exc:
-                    print("Service did not process request: " + str(exc))
-                return pos
+    def getCoords(self):
+        srv = 'get_coords'+self.activeRobot
+        rospy.wait_for_service(srv)
+        get_coords = rospy.ServiceProxy(srv, robotclient.srv.GetCoord)
+        try:
+            pos = get_coords()
+        except rospy.ServiceException as exc:
+            print("Service did not process request: " + str(exc))
+        return pos
 
 
     #Calculates what angle the robot should turn for next segment
-    def calculateAngle(fst,snd,target):
-        firstPos = fst
-        secondPos = snd
-        targetPos = target
+    def calculateAngle(self):
+        fst = self.firstPos
+        snd = self.secondPos
+        target = self.targetPos
 
         direction = 0
         #Calculate if robot should turn right or left
-        k_targ = (firstPos[1]-targetPos[1])/(firstPos[0]-targetPos[0])  # (yl-yt)/(xl-xt)
-        k_move = (firstPos[1]-secondPos[1])/(firstPos[0]-secondPos[0])  # (yc-yl)/(xc-xl)
-        if (firstPos[0] < 0 and firstPos[1] > 0) or (firstPos[0] > 0 and firstPos[1] < 0):
+        k_targ = (fst[1]-target[1])/(fst[0]-target[0])  # (yl-yt)/(xl-xt)
+        k_move = (fst[1]-snd[1])/(fst[0]-snd[0])  # (yc-yl)/(xc-xl)
+        if (fst[0] < 0 and fst[1] > 0) or (fst[0] > 0 and fst[1] < 0):
             if (k_move >= k_targ):
                 direction = 1
             else:
@@ -103,12 +108,12 @@ class MainNode():
             else:
                 direction = -1
         #Calculate degrees to turn
-        dotProd = (secondPos[0]-firstPos[0])*(targetPos[0]-firstPos[0])+(secondPos[1]-firstPos[1])*(targetPos[1]-firstPos[1])
+        dotProd = (snd[0]-fst[0])*(target[0]-fst[0])+(snd[1]-fst[1])*(target[1]-fst[1])
 
-        lengthA = math.sqrt(math.pow((secondPos[0]-firstPos[0]),2)+math.pow((secondPos[1]-firstPos[1]),2))
-        lengthB = math.sqrt(math.pow((targetPos[0]-firstPos[0]),2)+math.pow((targetPos[1]-firstPos[1]),2))
+        lengthA = math.sqrt(math.pow((snd[0]-fst[0]),2)+math.pow((snd[1]-fst[1]),2))
+        lengthB = math.sqrt(math.pow((target[0]-fst[0]),2)+math.pow((target[1]-fst[1]),2))
 
-        lengthToTarget =  math.sqrt(math.pow((targetPos[0]-secondPos[0]),2)+math.pow((targetPos[1]-secondPos[1]),2))
+        lengthToTarget =  math.sqrt(math.pow((target[0]-snd[0]),2)+math.pow((target[1]-snd[1]),2))
 
         print rospy.get_name(), "LengthToTarget: %s"%str(lengthToTarget)
 
@@ -122,5 +127,9 @@ class MainNode():
 
 
 
-    if __name__ == '__main__':
-        main()
+if __name__ == '__main__':
+    rospy.init_node('masternode')
+
+    try:
+        ne = MainController()
+    except rospy.ROSInterruptException: pass
