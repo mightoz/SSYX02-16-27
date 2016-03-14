@@ -21,17 +21,17 @@ def talker():
 	r.sleep()
 #Runs scripts to retrieve coordinates for robot.
 def main():   
-    s, reqIp = ConnectionRequest.connectReq(100, 0)  # connect to the RCM that is connected via ethernet cable
+    s, reqIp = ConnectionRequest.connectReq(101, 0)  # connect to the RCM that is connected via ethernet cable
 
 #Params: UWB-transceiver ip and coordinates for each transceiver.
     pos = RunLocateRobot.RunLocRob(s, reqIp, np.array([[106], [114], [109]]),
-                               np.array([[-1, 1, 1], [0, 3, -2]]), 4, 1e-6, 1e-6, 0)
+                               np.array([[-1, 2, 1], [1, 0, -2]]), 4, 1e-6, 1e-6, 0)
     posNp = np.array(pos, dtype = np.float32)
     posx = posNp[0]
     posy = posNp[1]
 
     f=Floats()
-    f.data = pos
+    f.data = posNp
 
     ConnectionRequest.dcReq(s, 0)  # close the socket that was opened above.
 

@@ -7,7 +7,7 @@ import rospy
 from rospy.numpy_msg import numpy_msg
 
 def handle_get_coord(req):
-    print "Is connected, wooohohohohohoh"
+
     pos = Measure.main()
     return GetCoordResponse(pos)
 
