@@ -10,8 +10,8 @@ def handle_get_coord(req):
     return GetCoordResponse(pos)
 
 def get_coord_server():
-    rospy.init_node('get_coord_server')
-    s = rospy.Service('get_coord', GetCoord, handle_get_coord)
+    rospy.init_node('get_coord_server1')
+    s = rospy.Service('get_coord1', GetCoord, handle_get_coord)
     print "Ready to Get Coords!"
     rospy.spin()
 

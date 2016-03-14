@@ -15,7 +15,7 @@ class MainNode():
 
     robot1coords = np.array([], dtype=np.float32);
     atGoal = False
-    activeRobot = 0
+    activeRobot = 1
 
     def main(self):
         rospy.init_node('masternode')
