@@ -23,6 +23,7 @@ class MainNode():
         rospy.spin()
 
     def moveTo(coord):
+        global activeRobot
         recordedPositions = np.array([], dtype=(np.float32, np.float32))
         targetPos = coord
         firstPos = getCoords()  # Temporary initialization
@@ -51,16 +52,18 @@ class MainNode():
                 return recordedPositions
 
         def rotate(angle):
-            rospy.wait_for_service('rotateRobot')
-            mvRobot = rospy.ServiceProxy('rotateRobot', robotclient.srv.RotateRobot)
+            srv = 'rotateRobot'+activeRobot
+            rospy.wait_for_service(srv)
+            mvRobot = rospy.ServiceProxy(srv, robotclient.srv.RotateRobot)
             try:
                 x = mvRobot(angle)
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))
 
         def driveForward():
-            rospy.wait_for_service('moveRobot')
-            mvRobot = rospy.ServiceProxy('moveRobot', robotclient.srv.MoveRobot)
+            srv = 'moveRobot'+activeRobot
+            rospy.wait_for_service(srv)
+            mvRobot = rospy.ServiceProxy(srv, robotclient.srv.MoveRobot)
             try:
                 x = mvRobot(0.2)
             except rospy.ServiceException as exc:
@@ -68,14 +71,15 @@ class MainNode():
 
 
         def getCoords():
-               rospy.wait_for_service('get_coords')
-               get_coords = rospy.ServiceProxy('get_coords', robotclient.srv.GetCoord)
-               try:
-                   pos = get_coords()
-                   recordedPositions.add(firstPos[0],firstPos[1])
-               except rospy.ServiceException as exc:
-                   print("Service did not process request: " + str(exc))
-               return pos
+                srv = 'get_coords'+activeRobot
+                rospy.wait_for_service(srv)
+                get_coords = rospy.ServiceProxy(srv, robotclient.srv.GetCoord)
+                try:
+                    pos = get_coords()
+                    recordedPositions.add(firstPos[0],firstPos[1])
+                except rospy.ServiceException as exc:
+                    print("Service did not process request: " + str(exc))
+                return pos
 
 
     #Calculates what angle the robot should turn for next segment
@@ -115,18 +119,6 @@ class MainNode():
         turningDegree = direction*(np.pi - math.asin(lengthB*(math.sin(theta)/lengthToTarget)))
 
         return turningDegree
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
