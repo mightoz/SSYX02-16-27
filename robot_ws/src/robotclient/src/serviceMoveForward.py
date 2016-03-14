@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-PKG = 'numpy'
+PKG = 'robotclient'
 import roslib; roslib.load_manifest(PKG)
 
 from robotclient.srv import *

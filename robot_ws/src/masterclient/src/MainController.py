@@ -28,7 +28,7 @@ class MainController():
         #Get starting coordinates
 	activeRobot = 1
 	print "Attempting to get cords for robot1"
-	bla = self.driveForward()
+
         currentpos1 = self.getCoords()
         robot_1_coords.append(self.currentpos1[0], self.currentpos1[1])
 	print "Got cords for robot1"
@@ -141,7 +141,7 @@ class MainController():
 
     def getCoords(self):
 	print "Trying to get Cords"
-        srv = '/get_coords1'#+self.activeRobot
+        srv = '/get_coord1'#+self.activeRobot
         rospy.wait_for_service(srv)
         try:
 	    get_coords = rospy.ServiceProxy(srv, GetCoord)
