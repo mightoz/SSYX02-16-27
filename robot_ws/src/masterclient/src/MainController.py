@@ -12,15 +12,74 @@ import math
 
 
 class MainNode():
-
-    robot1coords = np.array([], dtype=np.float32);
-    atGoal = False
-    activeRobot = 0
+    
 
     def main(self):
         rospy.init_node('masternode')
-        rospy.Subscriber("testmove", numpy_msg(Floats), moveTo)
-        rospy.spin()
+        atGoal = False
+        activeRobot = 0
+        numberofRobots  = 1
+        robot_1_coords = np.array([], dtype=np.float32) #Logged coordinates for robot 1
+        robot_2_coords = np.array([], dtype=np.float32) #Logged coordinates for robot 2
+    
+ 
+        #Get starting coordinates
+        currentpos1 = getCoords(1)
+        robot_1_coords.append(currentpos[0], currentpos[1])
+        currentpos2 = getCoords(2)
+        robot_1_coords.append(currentpos[0], currentpos[1])
+
+        #Set positions for end nodes
+        end_node = np.array([1, -2], dtype=np.float32)
+        master_node = np.array([0, 1], dtype=np.float32)
+
+        
+        #Direction vector calculation
+        v= np.array([], dtype=np.float32)
+        v_x = master_node[0] - end_node[0]
+        v_y = master_node[1] - end_node[1]
+        v.add(v_x, v_y)
+
+
+
+        #While distance from either first or robot to perfect line is further away than 10 centimeters, execute the move
+        while ((np.absolute(np.cross(v, np.array[(master_node[0] - currentpos1[0]), (master_node[1] - currentpos1[1])]))/np.absolute(v) > 0.1) || 
+            (np.absolute(np.cross(v, np.array[(master_node[0] - currentpos2[0]), (master_node[1] - currentpos2[1])]))/np.absolute(v) > 0.1) ):
+            #Test each robot and see if they're on the correct 'optimal' position, if not move and append the logged positions from moveTo to the coordinates for each robot
+            for i in numberofRobots:
+                nextPosition = np.array([], dtype=np.float32)
+                nextPosition = correctPosition(self, i)
+                if self.getCoords(i) == nextPosition:
+                    pass
+                else:
+                    activeRobot = i
+                    res = moveTo(nextPosition)
+                    if activeRobot=1:
+                    currentpos1=self.getCoords(1)
+                    robot_1_coords.append(res)
+                    elif activeRobot=2:
+                    currentpos2=self.getCoords(2)
+                    robot_2_coords.append(res)
+
+
+
+    def correctPos(self, robot):
+        #Calculates correct position for robot depending on active robot
+        correctPosition = np.array([], dtype=np.float32)
+        if (robot==0):
+            nextCoordx = (end_node[0] + self.currentpos2[0])/2 
+            nextCoordy =  (end_node[1] + self.currentpos2[1])/2
+            correctPosition.add(nextCoordx, nextCoordy)
+        elif (robot==1):
+            nextCoordx = (self.currentpos2[0] + master_node[0])/2
+            nextCoordx = (self.currentpos2[1] + master_node[1])/2
+            correctPosition.add(nextCoordx, nextCoordy)
+        else:  
+            pass
+        return correctPosition
+     
+
+
 
     def moveTo(coord):
         recordedPositions = np.array([], dtype=(np.float32, np.float32))
@@ -115,13 +174,6 @@ class MainNode():
         turningDegree = direction*(np.pi - math.asin(lengthB*(math.sin(theta)/lengthToTarget)))
 
         return turningDegree
-
-
-
-
-
-
-
 
 
 
