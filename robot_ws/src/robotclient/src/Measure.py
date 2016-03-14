@@ -4,7 +4,7 @@ PKG = 'robotclient'
 import roslib; roslib.load_manifest(PKG)
 import rospy
 from rospy.numpy_msg import numpy_msg
-from rospy_tutorials.msg import Floats
+from robotclient.msg import *
 
 import ConnectionRequest
 import RunLocateRobot
@@ -21,20 +21,21 @@ def talker():
 	r.sleep()
 #Runs scripts to retrieve coordinates for robot.
 def main():   
-    s, reqIp = ConnectionRequest.connectReq(101, 0)  # connect to the RCM that is connected via ethernet cable
+    s, reqIp = ConnectionRequest.connectReq(100, 0)  # connect to the RCM that is connected via ethernet cable
 
 #Params: UWB-transceiver ip and coordinates for each transceiver.
     pos = RunLocateRobot.RunLocRob(s, reqIp, np.array([[106], [114], [109]]),
                                np.array([[-1, 1, 1], [0, 3, -2]]), 4, 1e-6, 1e-6, 0)
-    #posNp = np.array(pos, dtype = np.float32)
+    posNp = np.array(pos, dtype = np.float32)
     posx = posNp[0]
     posy = posNp[1]
 
-    postwo = Floats(posx[0], posy[0])
+    f=Floats()
+    f.data = pos
 
     ConnectionRequest.dcReq(s, 0)  # close the socket that was opened above.
 
-    return pos
+    return f
 
 
 if __name__ == '__main__':
