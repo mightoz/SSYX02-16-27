@@ -26,7 +26,7 @@ def main():
 #Params: UWB-transceiver ip and coordinates for each transceiver.
     pos = RunLocateRobot.RunLocRob(s, reqIp, np.array([[106], [114], [109]]),
                                np.array([[-1, 1, 1], [0, 3, -2]]), 4, 1e-6, 1e-6, 0)
-    posNp = np.array(pos, dtype = np.float32)
+    #posNp = np.array(pos, dtype = np.float32)
     posx = posNp[0]
     posy = posNp[1]
 
@@ -34,7 +34,7 @@ def main():
 
     ConnectionRequest.dcReq(s, 0)  # close the socket that was opened above.
 
-    return postwo
+    return pos
 
 
 if __name__ == '__main__':
