@@ -199,6 +199,7 @@ class MainController():
         theta = math.acos(dotProd/(lengthA*lengthB))
 
         print rospy.get_name(), "Theta: %s"%str(theta)
+	print rospy.get_name(), "Direction: %s"%str(direction)
 
         turningDegree = direction*theta#(np.pi - math.asin(lengthB*(math.sin(theta)/lengthToTarget)))
 
