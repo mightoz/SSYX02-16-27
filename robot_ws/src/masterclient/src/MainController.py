@@ -175,6 +175,11 @@ class MainController():
                 direction = 1
             else:
                 direction = -1
+        """
+        # Calculate degrees to turn
+        theta = np.arccos(np.sum((target-fst)*(snd-fst))/(np.sqrt(np.sum((target-fst)**2))*np.sqrt(np.sum((snd-fst)**2))))
+        return direction*theta
+        """
         #Calculate degrees to turn
         dotProd = (snd[0]-fst[0])*(target[0]-fst[0])+(snd[1]-fst[1])*(target[1]-fst[1])
 
