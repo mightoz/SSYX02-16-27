@@ -20,24 +20,23 @@ def handle_rotateRobot(req):
 
     pub = rospy.Publisher("RosAria/cmd_vel", Twist, queue_size=10)    
 
-    rospy.loginfo("Sleeping for 2 sec to ensure stopped last motion.")
-    rospy.sleep(2);
-    
+#Sleep for 0.01s to ensure ready for rotate       
     twist = Twist()
     pub.publish(twist)
     rospy.loginfo("Sleeping for 2 sec to make sure it's stopped.")
-    rospy.sleep(2);
+    rospy.sleep(0.01);
 
-
-    twist.angular.z = (req.deg/2)
+#Fixed rotating speed, sleeptime changes depending on deg
+    twist.angular.z = 0.5*np.sign(req.deg)
+    print (np.abs(req.deg/0.5))
     rospy.loginfo("Rotatating robot.")
     pub.publish(twist)
-    rospy.sleep(2);
+    rospy.sleep(np.abs(req.deg/0.5));
 
     rospy.loginfo("Stopping.")
     twist = Twist()
     pub.publish(twist)
-    rospy.sleep(2);
+    rospy.sleep(0.01);
 
     print rospy.get_name(), "Finished Rotatating"
 

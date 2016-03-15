@@ -20,24 +20,23 @@ def handle_moveRobot(req):
 
     pub = rospy.Publisher("RosAria/cmd_vel", Twist, queue_size=10)    
 
-    rospy.loginfo("Sleeping for 2 sec to ensure stopped last motion.")
-    rospy.sleep(2);
-    
+
+#Sleeping for 0.01s to ensure ready for movement    
     twist = Twist()
     pub.publish(twist)
     rospy.loginfo("Sleeping for 2 sec to make sure it's stopped.")
-    rospy.sleep(2);
+    rospy.sleep(0.01);
 
 
-    twist.linear.x = (req.length/10)
+    twist.linear.x = (req.length/2)
     rospy.loginfo("Moving robot.")
     pub.publish(twist)
-    rospy.sleep(10);
+    rospy.sleep(2);
 
     rospy.loginfo("Stopping.")
     twist = Twist()
     pub.publish(twist)
-    rospy.sleep(2);
+    rospy.sleep(0.01);
 
     print rospy.get_name(), "Finished Moving"
 
