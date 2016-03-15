@@ -21,8 +21,8 @@ class MainController():
         atGoal = False
         self.activeRobot = 0
         numberofRobots  = 1
-        robot_1_coords = np.array([], dtype=np.float32) #Logged coordinates for robot 1
-        robot_2_coords = np.array([], dtype=np.float32) #Logged coordinates for robot 2
+        self.robot_1_coords = np.array([], dtype=np.float32) #Logged coordinates for robot 1
+        self.robot_2_coords = np.array([], dtype=np.float32) #Logged coordinates for robot 2
     
  
         #Get starting coordinates
@@ -32,10 +32,10 @@ class MainController():
 	self.currentpos1 = np.array([], dtype=np.float32) # Temporary initialization HARDKODAT
 	self.currentpos1 = self.getCoords(1) 	
 	print "This is the position:",(self.currentpos1) 
-        #robot_1_coords = np.append(robot_1_coords, ([self.currentpos1[0]], [self.currentpos1[1]]))
+        robot_1_coords = np.append(robot_1_coords, ([self.currentpos1[0]], [self.currentpos1[1]]))
 
 	#activeRobot = 2 	#TODO FIXA
-        #currentpos2 = self.getCoords(2)
+        currentpos2 = self.getCoords(2)
 	self.currentpos2 =  np.array([0,-1], dtype=np.float32)  # Temporary initialization HARDKODAT
         robot_2_coords= np.append(robot_2_coords, ([self.currentpos2[0]], [self.currentpos2[1]]))
 	
@@ -108,7 +108,7 @@ class MainController():
             if (not (((np.absolute(self.targetPos[0] - self.secondPos[0])) <= 0.1) & ((np.absolute(self.targetPos[1] - self.secondPos[1])) <= 0.1))):
                 self.runNextSegment()
         else:
-            return recordedPositions;
+            return self.recordedPositions;
 
 
     #Reruns the next segment of total path until robot is close enough to target position. 
