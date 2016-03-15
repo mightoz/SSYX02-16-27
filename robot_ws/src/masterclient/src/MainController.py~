@@ -27,47 +27,50 @@ class MainController():
  
         #Get starting coordinates
 	activeRobot = 1
-	print "Attempting to get cords for robot1"
-	bla = self.driveForward()
-        currentpos1 = self.getCoords()
-        robot_1_coords.append(self.currentpos1[0], self.currentpos1[1])
-	print "Got cords for robot1"
-	activeRobot = 2
-        #currentpos2 = self.getCoords()
-	currentpos2 =  np.array([0,-1], dype=np.float32) 
-        robot_2_coords.append(self.currentpos2[0], self.currentpos2[1])
+
+	
+	#self.currentpos1 = np.array([2,-1], dtype=np.float32) # Temporary initialization HARDKODAT
+	self.currentpos1 = self.getCoords() 	
+	print "This is the position: %s "%str(self.currentpos1) 
+        robot_1_coords = np.append(robot_1_coords, ([self.currentpos1[0]], [self.currentpos1[1]]))
+
+	activeRobot = 2 	#TODO FIXA
+        currentpos2 = self.getCoords()
+	#self.currentpos2 =  np.array([0,-1], dtype=np.float32)  # Temporary initialization HARDKODAT
+        robot_2_coords= np.append(robot_2_coords, ([self.currentpos2[0]], [self.currentpos2[1]]))
+	
+
+	activeRobot = 1
 
         #Set positions for end nodes
-        end_node = np.array([0, -2], dtype=np.float32)
-        master_node = np.array([0, 1], dtype=np.float32)
-
+        self.end_node = np.array([0,-2], dtype=np.float32)
+        master_node = np.array([0,1], dtype=np.float32)
+	
         
         #Direction vector calculation
-        v= np.array([], dtype=np.float32)
-        v_x = master_node[0] - end_node[0]
-        v_y = master_node[1] - end_node[1]
-        v.add(v_x, v_y)
-
+        v_x = (master_node[0] - self.end_node[0])
+        v_y = (master_node[1] - self.end_node[1])
+        v= np.array([v_x, v_y], dtype=np.float32)
 
 
         #While distance from either first or robot to perfect line is further away than 10 centimeters, execute the move
-        while ((np.absolute(np.cross(v, np.array[(master_node[0] - currentpos1[0]),(master_node[1] - currentpos1[1])]))/np.absolute(v) > 0.1) |
-            (np.absolute(np.cross(v, np.array[(master_node[0] - currentpos2[0]), (master_node[1] - currentpos2[1])]))/np.absolute(v) > 0.1) ):
+        while ((np.absolute(np.cross(v, np.array([(master_node[0] - self.currentpos1[0]),(master_node[1] - self.currentpos1[1])])))/np.absolute(v[0] + 1j*v[1]) > 0.1) |
+          (np.absolute(np.cross(v, np.array([(master_node[0] - self.currentpos2[0]), (master_node[1] - self.currentpos2[1])])))/np.absolute(v[0] + 1j*v[1]) > 0.1)):
             #Test each robot and see if they're on the correct 'optimal' position, if not move and append the logged positions from moveTo to the coordinates for each robot
-            for i in numberofRobots:
+            for i in (1, numberofRobots):
                 nextPosition = np.array([], dtype=np.float32)
                 nextPosition = self.correctPos(i)
-                if self.getCoords(i) == nextPosition:
+                if self.getCoords() == nextPosition:#TODO- Hur ska vi losa att vi maste skicka med vilken aktiv robot? # Temporary initialization HARDKODAT
                     pass
                 else:
                     activeRobot = i
                     res = self.moveTo(nextPosition)
                     if activeRobot==1:
-                        currentpos1=self.getCoords(1)
-                        robot_1_coords.append(res)
+                        currentpos1=self.getCoords() #TODO TROR APPEND MASTE HA LIKA STORA :(((
+                        robot_1_coords =  np.append(robot_1_coords, (res))
                     elif activeRobot==2 :
-                        currentpos2=self.getCoords(2)
-                        robot_2_coords.append(res)
+                        currentpos2=self.getCoords() #TODO
+                        robot_2_cords = np.append(robot_2_coords, (res))
 
 
 
@@ -77,11 +80,11 @@ class MainController():
         if (robot==1):
             nextCoordx = (self.end_node[0] + self.currentpos2[0])/2
             nextCoordy =  (self.end_node[1] + self.currentpos2[1])/2
-            correctPosition.add(nextCoordx, nextCoordy)
+            correctPosition = np.append(correctPosition , ([nextCoordx], [nextCoordy]))
         elif (robot==2):
-            nextCoordx = (self.currentpos2[0] + self.master_node[0])/2
-            nextCoordy = (self.currentpos2[1] + self.master_node[1])/2
-            correctPosition.add(nextCoordx, nextCoordy)
+            nextCoordx = (self.currentpos1[0] + self.master_node[0])/2
+            nextCoordy = (self.currentpos1[1] + self.master_node[1])/2
+            correctPosition = np.append(correctPosition , ([nextCoordx], [nextCoordy]))
         else:  
             pass
         return correctPosition
@@ -92,13 +95,14 @@ class MainController():
         #ar = self.activeRobot
         recordedPositions = np.array([], dtype=(np.float32, np.float32))
         self.targetPos = coord
-        self.firstPos = self.getCoords()  # Temporary initialization
+        #self.firstPos = np.array([2,-1], dtype=np.float32) 
+	self.firstPos = self.getCoords()  # Temporary initialization HARDKODAT
         self.secondPos = self.firstPos  # Temporary initialization
 
-        if (not (np.absolute(self.targetPos[0] - self.secondPos[0]) <= 0.1 & np.absolute(self.targetPos[1] - self.secondPos[1] <= 0.1))):
+        if (not (((np.absolute(self.targetPos[0] - self.secondPos[0])) <= 0.1) & ((np.absolute(self.targetPos[1] - self.secondPos[1])) <= 0.1))):
             self.driveForward()
-            self.secondPos = self.getCoords()
-            recordedPositions.add(self.secondPos[0],self.secondPos[1])
+            self.secondPos = self.getCoords() #np.array([], dtype=np.float32)#self.getCoords() # TEMPORARY HARDKODAT
+            recordedPositions = np.append(recordedPositions , ([self.secondPos[0]], [self.secondPos[1]]))
             if (not (np.absolute(self.targetPos[0] - self.secondPos[0]) <= 0.1 & np.absolute(self.targetPos[1] - self.secondPos[1] <= 0.1))):
                 self.runNextSegment()
         else:
@@ -113,14 +117,14 @@ class MainController():
         self.firstPos = self.secondPos
         self.secondPos = self.getCoords()
 
-        self.recordedPositions.append(self.secondPos[0],self.secondPos[1])
+	recordedPositions = np.append(recordedPositions , ([self.secondPos[0]], [self.secondPos[1]]))
         if (not (np.absolute(self.targetPos[0] - self.secondPos[0]) <= 0.1 & np.absolute(self.targetPos[1] - self.secondPos[1] <= 0.1))):
             self.runNextSegment()
         else:
             return self.recordedPositions
 
     def rotate(self,angle):
-        srv = 'rotateRobot'#+self.activeRobot
+        srv = '/rotateRobot1'#+self.activeRobot
         rospy.wait_for_service(srv)
         mvRobot = rospy.ServiceProxy(srv, RotateRobot)
         try:
@@ -129,7 +133,6 @@ class MainController():
             print("Service did not process request: " + str(exc))
 
     def driveForward(self):
-	print "attempting to move"
         srv = '/moveRobot1'#+self.activeRobot
         rospy.wait_for_service(srv)
         mvRobot = rospy.ServiceProxy(srv, MoveRobot)
@@ -140,15 +143,16 @@ class MainController():
 
 
     def getCoords(self):
-	print "Trying to get Cords"
-        srv = '/get_coords1'#+self.activeRobot
+	tmpPos = np.array([0,0], dtype=np.float32)
+        srv = 'get_coord1'#+self.activeRobot
         rospy.wait_for_service(srv)
+	get_coords = rospy.ServiceProxy(srv, GetCoord)
         try:
-	    get_coords = rospy.ServiceProxy(srv, GetCoord)
             pos = get_coords()
+	    tmpPos = pos.data
         except rospy.ServiceException as exc:
             print("Service did not process request: " + str(exc))
-        return pos
+        return tmpPos
 
 
     #Calculates what angle the robot should turn for next segment
