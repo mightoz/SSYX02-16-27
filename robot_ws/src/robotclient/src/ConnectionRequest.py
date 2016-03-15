@@ -12,7 +12,10 @@ def connectReq(reqId, doPrint):
     :return: The socket that has been created and the ip of the RCM that has been constructed from its id.
     """
     reqIp = '192.168.1.'+str(reqId)
-    [s, config] = rcmGetConfig.getConf(reqIp)
+
+    config = np.empty(0)
+    while np.size(config) == 0:
+        [s, config] = rcmGetConfig.getConf(reqIp)
 
     """ Uncomment this to change configuration parameters.
         Leave commented to accept the defaults from the radio """

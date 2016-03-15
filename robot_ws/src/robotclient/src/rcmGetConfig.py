@@ -84,5 +84,3 @@ def getConf(rcmIp):
                   configCodeChnl, configAntDlyA, configAntDlyB, configFlags,
                   configTxPwr, configUnused, configTimeStamp, configStat, configPersistFlag]
     return s, config
-
-
