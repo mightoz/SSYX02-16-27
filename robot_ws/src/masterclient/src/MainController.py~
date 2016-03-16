@@ -27,7 +27,8 @@ class MainController():
         self.robot_1_xcoords = np.array([], dtype=np.float32) #Logged x-coordinates for robot 1
         self.robot_1_ycoords = np.array([], dtype=np.float32) #Logged y-coordinates for robot 1
         robot_2_coords = np.array([], dtype=(np.float32,2)) #Logged coordinates for robot 2
-    
+        self.robot_2_xcoords = np.array([], dtype=np.float32) #Logged x-coordinates for robot 1
+        self.robot_2_ycoords = np.array([], dtype=np.float32) #Logged y-coordinates for robot 1
  
         #Get starting coordinates
 	activeRobot = 1
@@ -46,10 +47,11 @@ class MainController():
 	#print "ALL Y COORDS:", robot_1_ycoords
 
 	#activeRobot = 2 	#TODO FIXA
-        #currentpos2 = self.getCoords(2)
-	self.currentpos2 =  np.array([0,-1], dtype=np.float32)  # Temporary initialization HARDKODAT
+	#self.currentpos2 =  np.array([0,-1], dtype=np.float32)  # Temporary initialization HARDKODAT
+	self.currentpos2 = np.array([], dtype=np.float32) # Temporary initialization HARDKODAT
+	self.currentpos2 = self.getCoords(2)
 	print "currentpos2: ", (self.currentpos2)
-        robot_2_coords= np.append(robot_2_coords, ([self.currentpos2[0]], [self.currentpos2[1]]))
+        robot_2_coords = np.append(robot_2_coords, ([self.currentpos2[0]], [self.currentpos2[1]]))
 	
 
 	#activeRobot = 1
@@ -175,12 +177,18 @@ class MainController():
         if (not (((np.absolute(self.targetPos[0] - self.secondPos[0])) <= 0.15) & ((np.absolute(self.targetPos[1] - self.secondPos[1])) <= 0.15))):
             self.runNextSegment()
         else:
-	    self.robot_1_xcoords = np.append(self.robot_1_xcoords, self.recordedxPositions)
-	    self.robot_1_ycoords = np.append(self.robot_1_ycoords, self.recordedyPositions)
+	    if (self.activeRobot == 1):
+	    	self.robot_1_xcoords = np.append(self.robot_1_xcoords, self.recordedxPositions)
+	    	self.robot_1_ycoords = np.append(self.robot_1_ycoords, self.recordedyPositions)
+	    elif(self.activeRobot == 2):
+		self.robot_2_xcoords = np.append(self.robot_2_xcoords, self.recordedxPositions)
+	    	self.robot_2_ycoords = np.append(self.robot_2_ycoords, self.recordedyPositions)
+	    else:
+		pass
             return None
 
     def rotate(self,angle):
-        srv = '/rotateRobot1'#+self.activeRobot
+        srv = '/rotateRobot'+self.activeRobot
         rospy.wait_for_service(srv)
         mvRobot = rospy.ServiceProxy(srv, RotateRobot)
         try:
@@ -189,7 +197,7 @@ class MainController():
             print("Service did not process request: " + str(exc))
 
     def driveForward(self):
-        srv = '/moveRobot1'#+self.activeRobot
+        srv = '/moveRobot'+self.activeRobot
 	if(self.lengthToTarget <= 0.2):
 	    length = self.lengthToTarget
 	else:
@@ -204,7 +212,7 @@ class MainController():
 
     def getCoords(self, robotNbr):
 	tmpPos = np.empty([], dtype=np.float32)
-        srv = 'get_coord1'#+self.activeRobot #TODO robotnbr
+        srv = 'get_coord'+self.activeRobot
         rospy.wait_for_service(srv)
 	get_coords = rospy.ServiceProxy(srv, GetCoord)
         try:
