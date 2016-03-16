@@ -58,7 +58,7 @@ class MainController():
 
         #Set positions for end nodes
         self.end_node = np.array([0,-2], dtype=np.float32)
-        self.master_node = np.array([0,1], dtype=np.float32)
+        self.master_node = np.array([0,3], dtype=np.float32)
 	
         
         #Direction vector calculation
@@ -103,6 +103,9 @@ class MainController():
 	print "X positions: ", self.robot_2_xcoords
 	print "Y positions: ", self.robot_2_ycoords
 	plt.plot(self.robot_1_xcoords, self.robot_1_ycoords, 'ro')
+	plt.plot(self.robot_2_xcoords, self.robot_2_ycoords, 'bo')
+	plt.plot(self.master_node[0], self.master_node[1], 'go')
+	plt.plot(self.end_node[0], self.end_node[1], 'go')
 	plt.axis([-1, 2, -1, 2])
 	plt.show()
 
@@ -191,7 +194,7 @@ class MainController():
             return None
 
     def rotate(self,angle):
-        srv = '/rotateRobot'+self.activeRobot
+        srv = '/rotateRobot'+str(self.activeRobot)
         rospy.wait_for_service(srv)
         mvRobot = rospy.ServiceProxy(srv, RotateRobot)
         try:
@@ -200,7 +203,7 @@ class MainController():
             print("Service did not process request: " + str(exc))
 
     def driveForward(self):
-        srv = '/moveRobot'+self.activeRobot
+        srv = '/moveRobot'+str(self.activeRobot)
 	if(self.lengthToTarget <= 0.2):
 	    length = self.lengthToTarget
 	else:
@@ -215,7 +218,7 @@ class MainController():
 
     def getCoords(self, robotNbr):
 	tmpPos = np.empty([], dtype=np.float32)
-        srv = 'get_coord'+self.activeRobot
+        srv = 'get_coord'+str(self.activeRobot)
         rospy.wait_for_service(srv)
 	get_coords = rospy.ServiceProxy(srv, GetCoord)
         try:
