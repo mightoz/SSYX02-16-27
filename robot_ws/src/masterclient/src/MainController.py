@@ -98,7 +98,10 @@ class MainController():
 	print "X positions: ", self.robot_1_xcoords
 	print "Y positions: ", self.robot_1_ycoords
 	plt.plot(self.robot_1_xcoords, self.robot_1_ycoords, 'ro')
-	plt.axis([-1, 2, -1, 2])
+	plt.plot(self.master_node[0], self.master_node[1], 'bx')
+	plt.plot(self.end_node[0], self.end_node[1], 'bx')
+	plt.plot(0, -1, 'rx')
+	plt.axis([-1, 2, -3, 2])
 	plt.show()
 
 
