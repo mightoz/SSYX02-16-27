@@ -21,7 +21,7 @@ class MainController():
 #        rospy.spin()
         atGoal = False
         self.activeRobot = 0
-        numberofRobots  = 1
+        numberofRobots  = 2
 	self.lengthToTarget = 1
         robot_1_coords = np.array([], dtype=(np.float32,2)) #Logged coordinates for robot 1
         self.robot_1_xcoords = np.array([], dtype=np.float32) #Logged x-coordinates for robot 1
@@ -35,6 +35,7 @@ class MainController():
 
 	
 	self.currentpos1 = np.array([], dtype=np.float32) # Temporary initialization HARDKODAT
+	print "Trying to get coords for robot #1."
 	self.currentpos1 = self.getCoords(1)
 	print "currentpos1: ",(self.currentpos1) 
         robot_1_coords = np.append(robot_1_coords, [(self.currentpos1[0], self.currentpos1[1])])
@@ -69,11 +70,11 @@ class MainController():
 	
 
         #While distance from either first or robot to perfect line is further away than 10 centimeters, execute the move
-        while ((np.absolute(np.cross(v, np.array([(self.master_node[0] - self.currentpos1[0]),(self.master_node[1] - self.currentpos1[1])])))/np.absolute(v[0] + 1j*v[1]) > 0.4) |
-          (np.absolute(np.cross(v, np.array([(self.master_node[0] - self.currentpos2[0]), (self.master_node[1] - self.currentpos2[1])])))/np.absolute(v[0] + 1j*v[1]) > 0.4)):
+        while ((np.absolute(np.cross(v, np.array([(self.master_node[0] - self.currentpos1[0]),(self.master_node[1] - self.currentpos1[1])])))/np.absolute(v[0] + 1j*v[1]) > 0.1) |
+          (np.absolute(np.cross(v, np.array([(self.master_node[0] - self.currentpos2[0]), (self.master_node[1] - self.currentpos2[1])])))/np.absolute(v[0] + 1j*v[1]) > 0.1)):
             #Test each robot and see if they're on the correct 'optimal' position, if not move and append the logged positions from moveTo to the coordinates for each robot
-	    print "Robot 1 not in place: ", (np.absolute(np.cross(v, np.array([(self.master_node[0] - self.currentpos1[0]),(self.master_node[1] - self.currentpos1[1])])))/np.absolute(v[0] + 1j*v[1]) > 0.4)
-	    print "Robot 2 not in place: ", (np.absolute(np.cross(v, np.array([(self.master_node[0] - self.currentpos2[0]), (self.master_node[1] - self.currentpos2[1])])))/np.absolute(v[0] + 1j*v[1]) > 0.4)
+	    print "Robot 1 not in place: ", (np.absolute(np.cross(v, np.array([(self.master_node[0] - self.currentpos1[0]),(self.master_node[1] - self.currentpos1[1])])))/np.absolute(v[0] + 1j*v[1]) > 0.1)
+	    print "Robot 2 not in place: ", (np.absolute(np.cross(v, np.array([(self.master_node[0] - self.currentpos2[0]), (self.master_node[1] - self.currentpos2[1])])))/np.absolute(v[0] + 1j*v[1]) > 0.1)
             for i in (1, numberofRobots):
                 nextPosition = np.array([], dtype=np.float32)
                 nextPosition = self.correctPos(i)
@@ -83,13 +84,14 @@ class MainController():
                 if (np.sum(np.abs(self.getCoords(i) - nextPosition)) <= 0.1):#TODO- 
                     pass
                 else:
-                    activeRobot = i
+                    self.activeRobot = i
                     robotPositions = self.moveTo(nextPosition)
-                    if activeRobot==1:
+                    if self.activeRobot==1:
+
                         self.currentpos1=self.getCoords(1) #TODO
                         robot_1_coords =  np.append(robot_1_coords, robotPositions)
 			print robot_1_coords
-                    elif activeRobot==2 :
+                    elif self.activeRobot==2 :
                         self.currentpos2=self.getCoords(2) #TODO
                         robot_2_cords = np.append(robot_2_coords, robotPositions)
 
@@ -104,9 +106,12 @@ class MainController():
 	print "Y positions: ", self.robot_2_ycoords
 	plt.plot(self.robot_1_xcoords, self.robot_1_ycoords, 'ro')
 	plt.plot(self.robot_2_xcoords, self.robot_2_ycoords, 'bo')
-	plt.plot(self.master_node[0], self.master_node[1], 'go')
-	plt.plot(self.end_node[0], self.end_node[1], 'go')
-	plt.axis([-1, 2, -1, 2])
+	plt.plot(self.master_node[0], self.master_node[1], 'gx')
+	plt.plot(self.end_node[0], self.end_node[1], 'gx')
+	plt.plot(2,0, 'kx')
+	plt.plot(1,-2, 'kx')
+	plt.plot(-1,1, 'kx')
+	plt.axis([-2, 3.5, -3, 3.5])
 	plt.show()
 
 
@@ -127,9 +132,10 @@ class MainController():
 
     #Moves active robot to specified position
     def moveTo(self, coord):
-
-        #ar = self.activeRobot
 	
+	print "Entered moveTo, activerobot: ", self.activeRobot
+        #ar = self.activeRobot
+
         self.recordedPositions = np.array([], dtype=(np.float32, np.float32)) #All recorded positions
 	self.recordedxPositions = np.array([], dtype=np.float32)
 	self.recordedyPositions = np.array([], dtype=np.float32)
@@ -137,6 +143,10 @@ class MainController():
 	self.firstPos = self.getCoords(self.activeRobot)  # Temporary initialization HARDKODAT
         self.secondPos = self.firstPos  # Temporary initialization
 	
+	print "Targetpos: ", self.targetPos
+	print "Secondpos: ", self.secondPos
+	
+        print "THIS IS THE IF STATEMENT IN MOVETO", (not (((np.absolute(self.targetPos[0] - self.secondPos[0])) <= 0.15) & ((np.absolute(self.targetPos[1] - self.secondPos[1])) <= 0.15)))
 	#Check if robot is already close enough to target position, else run first segment. 
         if (not (((np.absolute(self.targetPos[0] - self.secondPos[0])) <= 0.15) & ((np.absolute(self.targetPos[1] - self.secondPos[1])) <= 0.15))):
             self.driveForward()
@@ -218,7 +228,7 @@ class MainController():
 
     def getCoords(self, robotNbr):
 	tmpPos = np.empty([], dtype=np.float32)
-        srv = 'get_coord'+str(self.activeRobot)
+        srv = 'get_coord'+str(robotNbr)
         rospy.wait_for_service(srv)
 	get_coords = rospy.ServiceProxy(srv, GetCoord)
         try:
