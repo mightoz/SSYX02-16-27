@@ -16,9 +16,6 @@ from robotclient.srv import *
 
 class MainController():
     def __init__(self):
-        #        rospy.Subscriber("testmove", numpy_msg(Floats), self.moveTo)
-        #        rospy.spin()
-        atGoal = False
         self.activeRobot = 0
         numberofRobots = 2
         self.lengthToTarget = 1
@@ -26,33 +23,24 @@ class MainController():
         self.robot_1_xcoords = np.array([], dtype=np.float32)  # Logged x-coordinates for robot 1
         self.robot_1_ycoords = np.array([], dtype=np.float32)  # Logged y-coordinates for robot 1
         robot_2_coords = np.array([], dtype=(np.float32, 2))  # Logged coordinates for robot 2
-        self.robot_2_xcoords = np.array([], dtype=np.float32)  # Logged x-coordinates for robot 1
-        self.robot_2_ycoords = np.array([], dtype=np.float32)  # Logged y-coordinates for robot 1
+        self.robot_2_xcoords = np.array([], dtype=np.float32)  # Logged x-coordinates for robot 2
+        self.robot_2_ycoords = np.array([], dtype=np.float32)  # Logged y-coordinates for robot 2
 
         # Get starting coordinates
         activeRobot = 1
 
-        self.currentpos1 = np.array([], dtype=np.float32)  # Temporary initialization HARDKODAT
+        self.currentpos1 = np.array([], dtype=np.float32)
         print "Trying to get coords for robot #1."
         self.currentpos1 = self.getCoords(1)
         print "currentpos1: ", (self.currentpos1)
         robot_1_coords = np.append(robot_1_coords, [(self.currentpos1[0], self.currentpos1[1])])
-        # robot_1_coords = np.append(robot_1_coords, [(self.currentpos1[0], self.currentpos1[1])])
         self.robot_1_xcoords = np.append(self.robot_1_xcoords, [self.currentpos1[0]])
         self.robot_1_ycoords = np.append(self.robot_1_ycoords, [self.currentpos1[1]])
 
-        # print "All registered coords:",(robot_1_coords)
-        # print "ALL X COORDS:", robot_1_xcoords
-        # print "ALL Y COORDS:", robot_1_ycoords
-
-        # activeRobot = 2 	#TODO FIXA
-        # self.currentpos2 =  np.array([0,-1], dtype=np.float32)  # Temporary initialization HARDKODAT
-        self.currentpos2 = np.array([], dtype=np.float32)  # Temporary initialization HARDKODAT
+        self.currentpos2 = np.array([], dtype=np.float32)
         self.currentpos2 = self.getCoords(2)
         print "currentpos2: ", (self.currentpos2)
         robot_2_coords = np.append(robot_2_coords, ([self.currentpos2[0]], [self.currentpos2[1]]))
-
-        # activeRobot = 1
 
         # Set positions for end nodes
         self.end_node = np.array([0, -2], dtype=np.float32)
@@ -66,7 +54,7 @@ class MainController():
         # While distance from either first or robot to perfect line is further away than 10 centimeters, execute the move
         while ((np.absolute(np.cross(v, np.array([(self.master_node[0] - self.currentpos1[0]),
                                                   (self.master_node[1] - self.currentpos1[1])]))) / np.absolute(
-                    v[0] + 1j * v[1]) > 0.1) |
+                v[0] + 1j * v[1]) > 0.1) |
                    (np.absolute(np.cross(v, np.array([(self.master_node[0] - self.currentpos2[0]),
                                                       (self.master_node[1] - self.currentpos2[1])]))) / np.absolute(
                            v[0] + 1j * v[1]) > 0.1)):
@@ -83,21 +71,16 @@ class MainController():
                 print "Calculated correct pos for robot #", i
                 print "Correct pos: ", nextPosition
                 print "Abovementionend robot close enough to correct pos: ", (
-                np.sum(np.abs(self.getCoords(i) - nextPosition)) <= 0.1)
+                    np.sum(np.abs(self.getCoords(i) - nextPosition)) <= 0.1)
                 if (np.sum(np.abs(self.getCoords(i) - nextPosition)) <= 0.1):  # TODO-
                     pass
                 else:
                     self.activeRobot = i
                     robotPositions = self.moveTo(nextPosition)
                     if self.activeRobot == 1:
-
                         self.currentpos1 = self.getCoords(1)  # TODO
-                        robot_1_coords = np.append(robot_1_coords, robotPositions)
-                        print robot_1_coords
                     elif self.activeRobot == 2:
                         self.currentpos2 = self.getCoords(2)  # TODO
-                        robot_2_cords = np.append(robot_2_coords, robotPositions)
-
             else:
                 pass
 
@@ -136,24 +119,19 @@ class MainController():
     def moveTo(self, coord):
 
         print "Entered moveTo, activerobot: ", self.activeRobot
-        # ar = self.activeRobot
-
         self.recordedPositions = np.array([], dtype=(np.float32, np.float32))  # All recorded positions
         self.recordedxPositions = np.array([], dtype=np.float32)
         self.recordedyPositions = np.array([], dtype=np.float32)
         self.targetPos = coord
-        self.firstPos = self.getCoords(self.activeRobot)  # Temporary initialization HARDKODAT
-        self.secondPos = self.firstPos  # Temporary initialization
+        self.firstPos = self.getCoords(self.activeRobot)
+        self.secondPos = self.firstPos
 
         print "Targetpos: ", self.targetPos
         print "Secondpos: ", self.secondPos
 
-        print "THIS IS THE IF STATEMENT IN MOVETO", (not (
-        ((np.absolute(self.targetPos[0] - self.secondPos[0])) <= 0.15) & (
-        (np.absolute(self.targetPos[1] - self.secondPos[1])) <= 0.15)))
         # Check if robot is already close enough to target position, else run first segment.
         if (not (((np.absolute(self.targetPos[0] - self.secondPos[0])) <= 0.15) & (
-            (np.absolute(self.targetPos[1] - self.secondPos[1])) <= 0.15))):
+                    (np.absolute(self.targetPos[1] - self.secondPos[1])) <= 0.15))):
             self.driveForward()
             self.secondPos = self.getCoords(self.activeRobot)
             self.recordedxPositions = np.append(self.recordedxPositions, [self.secondPos[0]])
@@ -162,23 +140,13 @@ class MainController():
             print "This is the position in y for moveTo:", self.recordedyPositions
             print "And return:", (self.recordedxPositions, self.recordedyPositions)
             self.recordedPositions = np.append(self.recordedPositions, (
-            [self.secondPos[0]], [self.secondPos[1]]))  # Add position after movement to recorded positions
+                [self.secondPos[0]], [self.secondPos[1]]))  # Add position after movement to recorded positions
             print "This is recorded pos:", self.recordedPositions
             if (not (((np.absolute(self.targetPos[0] - self.secondPos[0])) <= 0.15) & (
-                (np.absolute(self.targetPos[1] - self.secondPos[1])) <= 0.15))):
+                        (np.absolute(self.targetPos[1] - self.secondPos[1])) <= 0.15))):
                 self.runNextSegment()
         else:
             pass
-        # Add recorded x and y positions to arrays of x and y positions for the active robot TODO make better
-        # if (self.activeRobot ==1):
-        #    print "coords should be appended."
-        #    self.robot_1_xcoords = np.append(self.robot_1_xcoords, self.recordedxPositions)
-        #    self.robot_1_ycoords = np.append(self.robot_1_ycoords, self.recordedyPositions)
-        # elif(self.activeRobot ==2):
-        #    self.robot_2_xcoords = np.append(self.robot_2_xcoords, self.recordedxPositions)
-        #    self.robot_2_ycoords = np.append(self.robot_2_ycoords, self.recordedyPositions)
-        # else:
-        #    pass
         return self.recordedPositions
 
     # Reruns the next segment of total path until robot is close enough to target position.
@@ -196,13 +164,13 @@ class MainController():
         print "This is the position in y for nextSegment:", self.recordedyPositions
 
         if (not (((np.absolute(self.targetPos[0] - self.secondPos[0])) <= 0.15) & (
-            (np.absolute(self.targetPos[1] - self.secondPos[1])) <= 0.15))):
+                    (np.absolute(self.targetPos[1] - self.secondPos[1])) <= 0.15))):
             self.runNextSegment()
         else:
-            if (self.activeRobot == 1):
+            if self.activeRobot == 1:
                 self.robot_1_xcoords = np.append(self.robot_1_xcoords, self.recordedxPositions)
                 self.robot_1_ycoords = np.append(self.robot_1_ycoords, self.recordedyPositions)
-            elif (self.activeRobot == 2):
+            elif self.activeRobot == 2:
                 self.robot_2_xcoords = np.append(self.robot_2_xcoords, self.recordedxPositions)
                 self.robot_2_ycoords = np.append(self.robot_2_ycoords, self.recordedyPositions)
             else:
@@ -220,7 +188,7 @@ class MainController():
 
     def driveForward(self):
         srv = '/moveRobot' + str(self.activeRobot)
-        if (self.lengthToTarget <= 0.2):
+        if self.lengthToTarget <= 0.2:
             length = self.lengthToTarget
         else:
             length = 0.2
@@ -257,13 +225,13 @@ class MainController():
         # Calculate if robot should turn right or left
         k_targ = (fst[1] - target[1]) / (fst[0] - target[0])  # (yl-yt)/(xl-xt)
         k_move = (fst[1] - snd[1]) / (fst[0] - snd[0])  # (yc-yl)/(xc-xl)
-        if (fst[0] < 0 and fst[1] > 0) or (fst[0] > 0 and fst[1] < 0):
-            if (k_move >= k_targ):
+        if (fst[0] < 0 < fst[1]) or (fst[0] > 0 > fst[1]):
+            if k_move >= k_targ:
                 direction = -1
             else:
                 direction = 1
         else:
-            if (k_move < k_targ):
+            if k_move < k_targ:
                 direction = 1
             else:
                 direction = -1
