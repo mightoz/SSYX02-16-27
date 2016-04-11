@@ -16,8 +16,10 @@ from robotclient.srv import *
 
 class MainController():
     def __init__(self):
+        self.allCoords = np.array([],dtype=(np.float32,2))
         self.activeRobot = 0
-        numberofRobots = 2
+        self.numberofRobots = 2
+        initCoordListener()
         self.lengthToTarget = 1
         robot_1_coords = np.array([], dtype=(np.float32, 2))  # Logged coordinates for robot 1
         self.robot_1_xcoords = np.array([], dtype=np.float32)  # Logged x-coordinates for robot 1
@@ -100,6 +102,14 @@ class MainController():
         plt.axis([-2, 3.5, -3, 3.5])
         plt.show()
 
+    def initCoordListener(self):
+        rospy.init_node("coordlistener")
+        rospy.Subscriber("coords", numpy_msg(Floats), callback)
+        rospy.Spin
+
+    def callback(self, data):
+        self.allCoords = data.data
+    
     def correctPos(self, robot):
         # Calculates correct position for robot depending on active robot
         correctPosition = np.array([], dtype=np.float32)
