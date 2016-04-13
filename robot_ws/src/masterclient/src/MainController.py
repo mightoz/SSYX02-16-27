@@ -102,6 +102,81 @@ class MainController():
         plt.axis([-2, 3.5, -3, 3.5])
         plt.show()
 
+    #Move a robot from point A to B
+    def MoveAToB2(robot, target):
+
+        initialPos = robot.getCoords()
+        recordedPositions = np.array(initialPos, dtype=np.float32)
+        robot.moveForward(0.1)
+        recordedPositions = RunNextSegment2(robot, initialPos, target, recordedPositions)
+
+        return recordedPositions
+
+    def RunNextSegment2(robot, previousPos, targetPos, recordedPositions):
+
+        target = targetPos
+        current = robot.getCoords()
+        positions = np.append(recordedPositions, current)
+
+        if (not (((np.absolute(target[0] - current[0])) <= 0.15) & (
+                    (np.absolute(target[1] - current[1])) <= 0.15))):
+            len = math.sqrt(math.pow((target[0] - current[0]), 2) + math.pow((target[1] - current[1]), 2))
+            deg = robot.calculateAngle(previousPos, current, target)
+            if len <= 0.1:
+                robot.rotate(deg)
+                robot.moveForward(len)
+            else:
+                robot.rotate(deg)
+                robot.moveForward(0.1)
+            RunNextSegment2(robot, current, target, positions)
+        else:
+            return positions
+
+    def calculateAngle2(previousPos, currentPos, targetPos):
+        previous = previousPos
+        current = currentPos
+        target = targetPos
+        print "Previous position: ", previous
+        print "Current position: ", current
+        print "Target: ", target
+
+        direction = 0
+        # Calculate if robot should turn right or left
+        k_targ = (previous[1] - target[1]) / (previous[0] - target[0])  # (yl-yt)/(xl-xt)
+        k_move = (previous[1] - current[1]) / (previous[0] - current[0])  # (yc-yl)/(xc-xl)
+        if (previous[0] < 0 < previous[1]) or (previous[0] > 0 > previous[1]):
+            if k_move >= k_targ:
+                direction = -1
+            else:
+                direction = 1
+        else:
+            if k_move < k_targ:
+                direction = 1
+            else:
+                direction = -1
+        """
+        # Calculate degrees to turn
+        theta = np.arccos(np.sum((target-fst)*(snd-fst))/(np.sqrt(np.sum((target-fst)**2))*np.sqrt(np.sum((snd-fst)**2))))
+        return direction*theta
+        """
+        dotProd = (current[0] - previous[0]) * (target[0] - previous[0]) + (current[1] - previous[1]) * (target[1] - previous[1])
+        lengthA = math.sqrt(math.pow((current[0] - previous[0]), 2) + math.pow((current[1] - previous[1]), 2))
+        lengthB = math.sqrt(math.pow((target[0] - previous[0]), 2) + math.pow((target[1] - previous[1]), 2))
+
+        #self.lengthToTarget = math.sqrt(math.pow((target[0] - snd[0]), 2) + math.pow((target[1] - snd[1]), 2))
+        #print rospy.get_name(), "LengthToTarget: %s" % str(self.lengthToTarget)
+
+        # Calculate degrees to turn
+        theta = math.acos(dotProd / (lengthA * lengthB))
+
+        print rospy.get_name(), "Turningdegree: %s" % str(theta)
+        print rospy.get_name(), "Direction: %s" % str(direction)
+
+        turningDegree = direction * theta  # (np.pi - math.asin(lengthB*(math.sin(theta)/lengthToTarget)))
+
+        return turningDegree
+
+
     def initCoordListener(self):
         rospy.init_node("coordlistener")
         rospy.Subscriber("coords", numpy_msg(Floats), callback)
@@ -109,7 +184,7 @@ class MainController():
 
     def callback(self, data):
         self.allCoords = data.data
-    
+
     def correctPos(self, robot):
         # Calculates correct position for robot depending on active robot
         correctPosition = np.array([], dtype=np.float32)
