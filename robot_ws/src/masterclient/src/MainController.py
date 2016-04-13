@@ -104,33 +104,33 @@ class MainController():
 
     #Move a robot from point A to B
     def MoveAToB2(robot, target):
-
+        print "Moving , activerobot: ", robot
         initialPos = robot.getCoords()
-        recordedPositions = np.array(initialPos, dtype=np.float32)
         robot.moveForward(0.1)
-        recordedPositions = RunNextSegment2(robot, initialPos, target, recordedPositions)
+        RunNextSegment2(robot, initialPos, target)
 
-        return recordedPositions
+        return robot.getRecordedPositions
 
-    def RunNextSegment2(robot, previousPos, targetPos, recordedPositions):
 
+
+
+    def RunNextSegment2(robot, previousPos, targetPos):
         target = targetPos
-        current = robot.getCoords()
-        positions = np.append(recordedPositions, current)
+        current = robot.getCoords()        
 
         if (not (((np.absolute(target[0] - current[0])) <= 0.15) & (
                     (np.absolute(target[1] - current[1])) <= 0.15))):
-            len = math.sqrt(math.pow((target[0] - current[0]), 2) + math.pow((target[1] - current[1]), 2))
+            length = math.sqrt(math.pow((target[0] - current[0]), 2) + math.pow((target[1] - current[1]), 2))
             deg = robot.calculateAngle(previousPos, current, target)
-            if len <= 0.1:
+            if length <= 0.1:
                 robot.rotate(deg)
-                robot.moveForward(len)
+                robot.moveForward(length)
             else:
                 robot.rotate(deg)
                 robot.moveForward(0.1)
-            RunNextSegment2(robot, current, target, positions)
+            RunNextSegment2(robot, current, target)
         else:
-            return positions
+            return robot
 
     def calculateAngle2(previousPos, currentPos, targetPos):
         previous = previousPos
@@ -163,14 +163,12 @@ class MainController():
         lengthA = math.sqrt(math.pow((current[0] - previous[0]), 2) + math.pow((current[1] - previous[1]), 2))
         lengthB = math.sqrt(math.pow((target[0] - previous[0]), 2) + math.pow((target[1] - previous[1]), 2))
 
-        #self.lengthToTarget = math.sqrt(math.pow((target[0] - snd[0]), 2) + math.pow((target[1] - snd[1]), 2))
-        #print rospy.get_name(), "LengthToTarget: %s" % str(self.lengthToTarget)
-
+        
         # Calculate degrees to turn
         theta = math.acos(dotProd / (lengthA * lengthB))
 
-        print rospy.get_name(), "Turningdegree: %s" % str(theta)
-        print rospy.get_name(), "Direction: %s" % str(direction)
+        print rospy.get_name(), "Turningdegree: ", theta
+        print rospy.get_name(), "Direction: " , direction
 
         turningDegree = direction * theta  # (np.pi - math.asin(lengthB*(math.sin(theta)/lengthToTarget)))
 
