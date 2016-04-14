@@ -9,12 +9,22 @@ import numpy as np
 
 class Node():
     def __init__(self, num):
-        if num < 1 :
+        if num == 0 :
             self.type = "Base"
-        elif num > 2 :
-            self.type = "End"
-        else :
+            self.LeftNeighbor = -1
+            self.RightNeighbor = 1
+        elif num == 1 :
             self.type = "Robot"
+            self.LeftNeighbor = 0
+            self.RightNeighbor = 2
+        elif num == 2 :
+            self.type = "Robot"
+            self.LeftNeighbor = 1
+            self.RightNeighbor = 3
+        elif num == 3 :
+            self.type = "End"
+            self.LeftNeighbor = 2
+            self.RightNeighbor = -1
 
         self.node = num
         self.recordedPositions = np.array([], dtype=np.float32)
@@ -55,3 +65,9 @@ class Node():
             x = mvRobot(angle)
         except rospy.ServiceException as exc:
             print("Service did not process request: " + str(exc))
+
+    def GetLeft(self):
+        return self.LeftNeighbor
+
+    def GetRight(self):
+        return self.RightNeighbor
