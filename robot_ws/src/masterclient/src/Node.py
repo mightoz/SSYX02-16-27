@@ -28,6 +28,8 @@ class Node():
 
         self.node = num
         self.recordedPositions = np.array([], dtype=np.float32)
+        self.recordedXPositions = np.array([], dtype=np.float32)
+        self.recordedYPositions = np.array([], dtype=np.float32)
 
 
     def GetCoords(self):
@@ -40,12 +42,27 @@ class Node():
             f = get_coords()
             tmpPos = f.data.data
             self.recordedPositions = np.array(self.recordedPositions, tmpPos)
+            self.recordedXPositions = np.array(self.recordedXPositions, tmpPos[0])
+            self.recordedYPositions = np.array(self.recordedYPositions, tmpPos[1])
         except rospy.ServiceException as exc:
             print("Service did not process request: " + str(exc))
         return tmpPos
 
     def GetRecordedPositions(self):
         return self.recordedPositions
+
+    def GetRecordedXPositions(self):
+        return self.recordedXPositions
+
+    def GetRecordedYPositions(self):
+        return self.recordedYPositions
+
+    def GetLeftNeighbor(self):
+        return self.LeftNeighbor
+
+    def GetRightNeighbor(self):
+        return self.RightNeighbor
+
 
     def DriveForward(self, length):
 
@@ -66,8 +83,3 @@ class Node():
         except rospy.ServiceException as exc:
             print("Service did not process request: " + str(exc))
 
-    def GetLeft(self):
-        return self.LeftNeighbor
-
-    def GetRight(self):
-        return self.RightNeighbor
