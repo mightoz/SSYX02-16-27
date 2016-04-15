@@ -22,7 +22,7 @@ class Kalman(object):
         self.theta = theta
         for i in range(0, 30):
             a, b = self.correct(np.array([[0], [0]]), 0, np.random.normal(0, self.sigma_meas, (2, 1)),
-                                0, 1, 0.5, self.get_noise(0, 0, 1, 0.5))
+                                0, 1, 0.5)
 
 
     def get_noise(self, theta, X, Z, dt):
@@ -34,12 +34,20 @@ class Kalman(object):
         :param dt: time step between last and this control input
         :return: the control noise standard deviation matrix based on the control input
         """
-        x_w1 = X*(np.sin(theta+Z*dt)-np.sin(theta))/Z
-        x_w2 = Z*(np.cos(theta+Z*dt)*dt-(np.sin(theta+Z*dt)-np.sin(theta))/Z)*X/Z
-        xdot_w1 = X*np.cos(theta)
-        y_w1 = X*(np.cos(theta)-np.cos(theta+Z*dt))/Z
-        y_w2 = Z*(np.sin(theta+Z*dt)*dt+(np.cos(theta+Z*dt)-np.cos(theta))/Z)*X/Z
-        ydot_w1 = X*np.sin(theta)
+        if Z > 1e-40:
+            x_w1 = X*(np.sin(theta+Z*dt)-np.sin(theta))/Z
+            x_w2 = Z*(np.cos(theta+Z*dt)*dt-(np.sin(theta+Z*dt)-np.sin(theta))/Z)*X/Z
+            xdot_w1 = X*np.cos(theta)
+            y_w1 = X*(np.cos(theta)-np.cos(theta+Z*dt))/Z
+            y_w2 = Z*(np.sin(theta+Z*dt)*dt+(np.cos(theta+Z*dt)-np.cos(theta))/Z)*X/Z
+            ydot_w1 = X*np.sin(theta)
+        else:
+            x_w1 = X*np.cos(theta)*dt
+            x_w2 = 0
+            xdot_w1 = X*np.cos(theta)
+            y_w1 = X*np.sin(theta)*dt
+            y_w2 = 0
+            ydot_w1 = X*np.sin(theta)
         L = np.array([[x_w1, x_w2, 0, 0],
                       [xdot_w1, 0, 0, 0],
                       [y_w1, y_w2, 0, 0],
@@ -78,7 +86,7 @@ class Kalman(object):
         self.Q += self.get_noise(theta, X, Z, dt)
         return x_k_k1, theta
 
-    def correct(self, pos, theta, pos_meas, X, Z, dt, Q):
+    def correct(self, pos, theta, pos_meas, X, Z, dt):
         """
 
         :param pos: position vector [[x], [y]] before control was applied
@@ -99,20 +107,24 @@ class Kalman(object):
                                [X*np.cos(theta)],
                                [pos[1]+(np.cos(theta)-np.cos(theta+Z*dt))*X/Z],
                                [X*np.sin(theta)]])  # predicted state
+            F = np.array([[1, np.sin(Z*dt)/Z, 0, (np.cos(Z*dt)-1)/Z],
+                          [0, 1, 0, 0],
+                          [0, (1-np.cos(Z*dt))/Z, 1, np.sin(Z*dt)/Z],
+                          [0, 0, 0, 1]])
         else:
             x_k_k1 = np.array([[pos[0]+X*np.cos(theta)*dt],
                                [X*np.cos(theta)],
                                [pos[1]+X*np.sin(theta)*dt],
                                [X*np.sin(theta)]])  # predicted state
+            F = np.array([[1, dt, 0, 0],
+                          [0, 1, 0, 0],
+                          [0, 0, 1, dt],
+                          [0, 0, 0, 1]])
         self.Q += self.get_noise(theta, X, Z, dt)  # control noise standard deviation
         R = self.sigma_meas**2*np.array([[1, 0, 0, 0],
                                          [0, 1, 0, 0],
                                          [0, 0, 1, 0],
                                          [0, 0, 0, 1]])  # measurement noise standard deviation
-        F = np.array([[1, np.sin(Z*dt)/Z, 0, (np.cos(Z*dt)-1)/Z],
-                      [0, 1, 0, 0],
-                      [0, (1-np.cos(Z*dt))/Z, 1, np.sin(Z*dt)/Z],
-                      [0, 0, 0, 1]])
         H = np.array([[1, 0, 0, 0],
                       [0, 0, 0, 0],
                       [0, 0, 1, 0],

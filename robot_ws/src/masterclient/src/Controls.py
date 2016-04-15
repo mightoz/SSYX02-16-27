@@ -12,7 +12,7 @@ def find_next_pos(currpos, neighbour1pos, neighbour2pos, k):
     """
     dist1 = neighbour1pos - currpos
     dist2 = neighbour2pos - currpos
-    return k * (dist1 + dist2)
+    return currpos + k * (dist1 + dist2)
 
 
 def get_rot_dir(theta, currpos, tarpos):
@@ -159,10 +159,14 @@ class Controls(object):
         :param T_Z: Time to face target pos
         :return: the next controls; X, Z
         """
+        """
         if neighbour2pos == 0:
             tarpos = self.findnextpos(currpos, neighbour1pos, currpos, k)
         else:
             tarpos = self.findnextpos(currpos, neighbour1pos, neighbour2pos, k)
-        nextZ = get_rot_dir(theta, currpos, tarpos) * self.get_rot_magn(theta, currpos, tarpos, T_Z)
-        nextX = self.get_trans_magn(currpos, tarpos, T_X, np.abs(nextZ * T_Z))
+        """
+        tarpos = find_next_pos(currpos, neighbour1pos, neighbour2pos, k)
+        print currpos, neighbour1pos, neighbour2pos, k
+        nextZ = get_rot_dir(theta, currpos, tarpos) * self.get_rot_magn_1(theta, currpos, tarpos, T_Z)
+        nextX = self.get_trans_magn_1(currpos, tarpos, T_X, np.abs(nextZ * T_Z))
         return nextX, nextZ
