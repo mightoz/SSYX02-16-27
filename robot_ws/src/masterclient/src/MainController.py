@@ -10,46 +10,47 @@ from geometry_msgs.msg import Twist
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+import Node
 
 from robotclient.srv import *
 
 
 class MainController():
- def __init__(self):
+    def __init__(self):
         #alignrobot1.0
 
-        #Choose number of nodes
-        self.numberofNodes = 3
-        nodes = []  #Array containing pointers to instances of all the Nodes
-        for i in (0, numberofNodes):
-            nodes.append(Node(i)) #create instances of all the Nodes
+        #Choose number of self.nodes
+        numberofNodes = 4
+        self.nodes = []  #Array containing pointers to instances of all the Nodes
+        for i in range(0, numberofNodes):
+            self.nodes.append(Node.Node(i)) #create instances of all the Nodes
         else:
             pass
-        #Doublecheck if size is correct    
-        print "Check if size is correct" , (len(nodes) == (numberofNodes+1))
-
+       
 
         #Set while condition too True.
         notFinished = True
         while (notFinished):
             #Loop through all of the robots                
-            for i in (1, numberofNodes-1):
+            for i in range(1, numberofNodes-1):
                 #nextPosition = np.array([], dtype=np.float32)
                 #Calulate correctposition for robot
-                possiblenextPosition = self.CorrectPos2(nodes[i])
+                possiblenextPosition = self.CorrectPos2(self.nodes[i])
+		print possiblenextPosition
                 #Check if position is within a radius of 0.1m of possiblenextPosition
-                if (np.linalg.norm(nodes[i].GetCoords() - possiblenextPosition) > 0.1):
-                    self.MoveAToB2(nodes[i], possiblenextPosition) #Otherwise move
+                if (np.linalg.norm(self.nodes[i].GetCoords() - possiblenextPosition) > 0.1):
+		    print "Tries to move"
+                    self.MoveAToB2(self.nodes[i], possiblenextPosition) #Otherwise move
                     #TODO: ONLY CHECK AND THEN MOVE.
             else:
                 pass 
         #For printing
         colors = ['gx','ro','bo','gx']
         for i in (0, numberofNodes):
-            print "Recorded positions for Node %s are %s" % (nodes[i], nodes[i].GetRecordedPositions())
-            print "Recorded X positions for Node %s are %s" % (nodes[i], nodes[i].getRecordedXPositions())
-            print "Recorded Y positions for Node %s are %s" % (nodes[i], nodes[i].getRecordedYPositions())
-            plt.plot(nodes[i].getRecordedXPositions(), nodes[i].getRecordedYPositions(), colors[i])
+            print "Recorded positions for Node %s are %s" % (self.nodes[i], self.nodes[i].GetRecordedPositions())
+            print "Recorded X positions for Node %s are %s" % (self.nodes[i], self.nodes[i].getRecordedXPositions())
+            print "Recorded Y positions for Node %s are %s" % (self.nodes[i], self.nodes[i].getRecordedYPositions())
+            plt.plot(self.nodes[i].getRecordedXPositions(), self.nodes[i].getRecordedYPositions(), colors[i])
         else:
             pass
         plt.plot(2, 0, 'kx')
@@ -63,40 +64,40 @@ class MainController():
         correctPosition = np.array([], dtype=np.float32)
         left = robot.GetLeftNeighbor()
         right = robot.GetRightNeighbor()
-        correctPosition = (left.GetCoords() + right.GetCoords())/2 #Calculates correct position
+        correctPosition = (self.nodes[left].GetCoords() + self.nodes[right].GetCoords())/2 #Calculates correct position
         return correctPosition
 
 
 
     #Move a robot from point A to B
-    def MoveAToB2(robot, target):
+    def MoveAToB2(self, robot, target):
         print "Moving , activerobot: ", robot
         initialPos = robot.GetCoords()
-        robot.moveForward(0.1)
-        RunNextSegment2(robot, initialPos, target)
+        robot.DriveForward(0.1)
+        self.RunNextSegment2(robot, initialPos, target)
 
         return robot.GetRecordedPositions
 
 
-    def RunNextSegment2(robot, previousPos, targetPos):
+    def RunNextSegment2(self, robot, previousPos, targetPos):
         target = targetPos
         current = robot.GetCoords()        
 
         if (not (((np.absolute(target[0] - current[0])) <= 0.15) & (
                     (np.absolute(target[1] - current[1])) <= 0.15))):
             length = math.sqrt(math.pow((target[0] - current[0]), 2) + math.pow((target[1] - current[1]), 2))
-            deg = robot.calculateAngle(previousPos, current, target)
+            deg = self.calculateAngle2(previousPos, current, target)
             if length <= 0.1:
-                robot.rotate(deg)
-                robot.moveForward(length)
+                robot.Rotate(deg)
+                robot.DriveForward(length)
             else:
-                robot.rotate(deg)
-                robot.moveForward(0.1)
-            RunNextSegment2(robot, current, target)
+                robot.Rotate(deg)
+                robot.DriveForward(0.1)
+            self.RunNextSegment2(robot, current, target)
         else:
             return robot
 
-    def calculateAngle2(previousPos, currentPos, targetPos):
+    def calculateAngle2(self, previousPos, currentPos, targetPos):
         previous = previousPos
         current = currentPos
         target = targetPos
@@ -167,7 +168,7 @@ class MainController():
 #        print "currentpos2: ", (self.currentpos2)
 #        robot_2_coords = np.append(robot_2_coords, ([self.currentpos2[0]], [self.currentpos2[1]]))
 #
-#        # Set positions for end nodes
+#        # Set positions for end self.nodes
 #        self.end_node = np.array([0, -2], dtype=np.float32)
 #        self.master_node = np.array([0, 3], dtype=np.float32)
 #
@@ -372,6 +373,7 @@ class MainController():
 
 if __name__ == '__main__':
     rospy.init_node('masternode')
+    #print rospy.get_caller_id()
 
     try:
         ne = MainController()
