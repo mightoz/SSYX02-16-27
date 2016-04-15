@@ -15,15 +15,16 @@ def talker():
     pub = rospy.Publisher('coordinates', numpy_msg(Floats),queue_size=10)
     rospy.init_node('talker', anonymous=True)
     r = rospy.Rate(10)
+
     while not rospy.is_shutdown():
         a = main()
         pub.publish(a)
 	r.sleep()
 #Runs scripts to retrieve coordinates for robot.
-def main():   
+def main():
     s, reqIp = ConnectionRequest.connectReq(101, 0)  # connect to the RCM that is connected via ethernet cable
 
-#Params: UWB-transceiver ip and coordinates for each transceiver.
+    # Params: UWB-transceiver ip and coordinates for each transceiver.
     pos = RunLocateRobot.RunLocRob(s, reqIp, np.array([[106], [114], [109]]),
                                np.array([[-1, 2, 1], [1, 0, -2]]), 4, 1e-6, 1e-6, 0)
     posNp = np.array(pos, dtype = np.float32)

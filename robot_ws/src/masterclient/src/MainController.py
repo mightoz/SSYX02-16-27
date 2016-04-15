@@ -137,6 +137,41 @@ class MainController():
         turningDegree = direction * theta  # (np.pi - math.asin(lengthB*(math.sin(theta)/lengthToTarget)))
 
         return turningDegree
+
+def get_rot_dir(self, theta, startpos, endpos):
+     """
+
+     :param theta: angle
+     :param startpos: [xstart,ystart]
+     :param endpos: [xend,yend]
+     :return:
+     """
+     # calculate the angle between the x-axis and the line intersecting endpos and startpos
+     phi = 0
+     if np.abs(startpos[0]-endpos[0]) > 1e-30:
+         z1 = startpos-endpos
+         z2 = np.array([1, 0])
+         if startpos[1] >= endpos[1]:  # 0 <= phi <= pi
+             phi = np.arccos(np.dot(z1, z2)/(np.linalg.norm(z1)*np.linalg.norm(z2)))
+         else:  # pi < phi < 2*pi
+             phi = 2*np.pi - np.arccos(np.dot(z1, z2)/(np.linalg.norm(z1)*np.linalg.norm(z2)))
+     else:
+         phi = np.sign(startpos[1]-endpos[1])*np.pi/2
+
+     # calculate the effective angle needed to determine how to change Z
+     angle = np.mod(theta - np.pi, 2*np.pi)
+
+     # determine the rotation direction (+1 ccw, -1 cw)
+     if 0 <= phi <= np.pi:
+         if phi <= angle < (phi + np.pi):
+             return -1
+         else:
+             return 1
+     else:
+         if np.mod(phi+np.pi, 2*np.pi) < angle < phi:
+             return 1
+         else:
+             return -1
 #################################################################################################################################################
 #    def __init__(self):
 #        self.allCoords = np.array([],dtype=(np.float32,2))
