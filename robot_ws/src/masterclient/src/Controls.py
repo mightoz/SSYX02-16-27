@@ -166,7 +166,6 @@ class Controls(object):
             tarpos = self.findnextpos(currpos, neighbour1pos, neighbour2pos, k)
         """
         tarpos = find_next_pos(currpos, neighbour1pos, neighbour2pos, k)
-        print currpos, neighbour1pos, neighbour2pos, k
         nextZ = get_rot_dir(theta, currpos, tarpos) * self.get_rot_magn_1(theta, currpos, tarpos, T_Z)
         nextX = self.get_trans_magn_1(currpos, tarpos, T_X, np.abs(nextZ * T_Z))
         return nextX, nextZ
