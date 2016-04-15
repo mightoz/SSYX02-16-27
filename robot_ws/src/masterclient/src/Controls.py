@@ -1,28 +1,63 @@
 import numpy as np
 
 
+def find_next_pos(currpos, neighbour1pos, neighbour2pos, k):
+    """
+
+    :param currpos: your position
+    :param neighbour1pos: your first neighbour
+    :param neighbour2pos: your left neighbour
+    :param k: some constant (0<k<1) to get target = pos + k*grad(f)
+    :return: the next target position
+    """
+    dist1 = neighbour1pos - currpos
+    dist2 = neighbour2pos - currpos
+    return k * (dist1 + dist2)
+
+
+def get_rot_dir(theta, currpos, tarpos):
+    """
+
+    :param theta: angle
+    :param currpos: [xstart,ystart]
+    :param tarpos: [xend,yend]
+    :return:
+    """
+    # calculate the angle between the x-axis and the line intersecting endpos and startpos
+    phi = 0
+    if np.abs(currpos[0] - tarpos[0]) > 1e-30:
+        z1 = currpos - tarpos
+        z2 = np.array([1, 0])
+        if currpos[1] >= tarpos[1]:  # 0 <= phi <= pi
+            phi = np.arccos(np.dot(z1, z2) / (np.linalg.norm(z1) * np.linalg.norm(z2)))
+        else:  # pi < phi < 2*pi
+            phi = 2 * np.pi - np.arccos(np.dot(z1, z2) / (np.linalg.norm(z1) * np.linalg.norm(z2)))
+    else:
+        phi = np.sign(currpos[1] - tarpos[1]) * np.pi / 2
+
+    # calculate the effective angle needed to determine how to change Z
+    angle = np.mod(theta - np.pi, 2 * np.pi)
+    # determine the rotation direction (+1 ccw, -1 cw)
+    if 0 <= phi <= np.pi:
+        if phi <= angle < (phi + np.pi):
+            return -1
+        else:
+            return 1
+    else:
+        if np.mod(phi + np.pi, 2 * np.pi) <= angle < phi:
+            return 1
+        else:
+            return -1
+
+
 class Controls(object):
+    def __init__(self, x_min, x_max, z_min, z_max):
+        self.X_min = x_min
+        self.X_max = x_max
+        self.Z_min = z_min
+        self.Z_max = z_max
 
-    def __init__(self, X_min, X_max, Z_min, Z_max):
-        self.X_min = X_min
-        self.X_max = X_max
-        self.Z_min = Z_min
-        self.Z_max = Z_max
-
-    def findnextpos(self, currpos, neighbour1pos, neighbour2pos, k):
-        """
-
-        :param currpos: your position
-        :param neighbour1pos: your first neighbour
-        :param neighbour2pos: your left neighbour
-        :param k: some constant (0<k<1) to get target = pos + k*grad(f)
-        :return: the next target position
-        """
-        dist1 = neighbour1pos-currpos
-        dist2 = neighbour2pos-currpos
-        return k*(dist1+dist2)
-
-    def get_trans_magn(self, currpos, tarpos, T, phi):
+    def get_trans_magn_1(self, currpos, tarpos, T, phi):
         """
 
         :param currpos: [xstart, ystart]
@@ -31,21 +66,38 @@ class Controls(object):
         :param phi: angle to rotate to face target pos
         :return: The velocity for the next iteration
         """
-        dist = np.linalg.norm(currpos-tarpos)
-        if dist/T*(np.pi - phi)/np.pi > self.X_max:
+        dist = np.linalg.norm(currpos - tarpos)
+        if dist / T * (np.pi - phi) / np.pi > self.X_max:
             return self.X_max
-        elif dist/T*(np.pi - phi)/np.pi < self.X_min:
+        elif dist / T * (np.pi - phi) / np.pi < self.X_min:
             return self.X_min
         else:
-            return dist/T*(np.pi - phi)/np.pi
+            return dist / T * (np.pi - phi) / np.pi
 
-    def get_rot_magn(self, theta, currpos, tarpos, T):
+    def get_trans_magn_2(self, current, target, t):
+
+        lengthtotarget = np.sqrt(np.pow(target[0] - current[0], 2) + np.pow(target[1] - current[1], 2))
+
+        # X FUNKTION AV Z OCH LENGTH
+
+        if lengthtotarget > 0.5:
+            x = self.xMax
+        elif lengthtotarget > 0.25:
+            x = 0.5 * len / t
+        elif lengthtotarget > 0.05:
+            x = 0.25 * lengthtotarget / t
+        else:
+            x = 0
+
+        return x
+
+    def get_rot_magn_1(self, theta, currpos, tarpos, t):
         """
 
         :param theta: angle
-        :param startpos: [xstart, ystart]
-        :param endpos: [xend, yend]
-        :param T: time to face target
+        :param currpos: [xstart, ystart]
+        :param tarpos: [xend, yend]
+        :param t: time to face target
         :return: The rotation for the next iteration
         """
         y = tarpos - currpos
@@ -53,55 +105,49 @@ class Controls(object):
                       [np.sin(theta), -np.cos(theta)]])
         x = np.linalg.solve(A, y)
 
-        d = np.array([x[0]*np.cos(theta), x[0]*np.sin(theta)])
+        d = np.array([x[0] * np.cos(theta), x[0] * np.sin(theta)])
 
         if x[0] >= 0:
-            phi = np.arccos(np.dot(y, d)/(np.linalg.norm(y)*np.linalg.norm(d)))
+            phi = np.arccos(np.dot(y, d) / (np.linalg.norm(y) * np.linalg.norm(d)))
         else:
-            phi = np.pi - np.arccos(np.dot(y, d)/(np.linalg.norm(y)*np.linalg.norm(d)))
+            phi = np.pi - np.arccos(np.dot(y, d) / (np.linalg.norm(y) * np.linalg.norm(d)))
 
-        if phi/T > self.Z_max:
+        if phi / t > self.Z_max:
             return self.Z_max
-        elif phi/T < self.Z_min:
+        elif phi / t < self.Z_min:
             return self.Z_min
         else:
-            return phi/T
+            return phi / t
 
-    def get_rot_dir(self, theta, currpos, tarpos):
-        """
+    def get_rot_magn_2(self, theta, current, target, t):
 
-        :param theta: angle
-        :param currpos: [xstart,ystart]
-        :param tarpos: [xend,yend]
-        :return:
-        """
-        # calculate the angle between the x-axis and the line intersecting endpos and startpos
-        phi = 0
-        if np.abs(currpos[0]-tarpos[0]) > 1e-30:
-            z1 = currpos-tarpos
-            z2 = np.array([1, 0])
-            if currpos[1] >= tarpos[1]:  # 0 <= phi <= pi
-                phi = np.arccos(np.dot(z1, z2)/(np.linalg.norm(z1)*np.linalg.norm(z2)))
-            else:  # pi < phi < 2*pi
-                phi = 2*np.pi - np.arccos(np.dot(z1, z2)/(np.linalg.norm(z1)*np.linalg.norm(z2)))
+        direction = get_rot_dir(theta, current, target)
+
+        a = np.array([[np.cos(theta), np.sin(theta)], [np.sin(theta), -np.cos(theta)]])
+        b = target - current
+        (alfa, beta) = np.linalg.solv(a, b)
+
+        lengthtotarget = np.sqrt(np.pow(target[0] - current[0], 2) + np.pow(target[1] - current[1], 2))
+
+        phi = np.arctan(alfa / beta)
+
+        if phi > 45:
+            za = self.zMax
+        elif phi > 20:
+            za = 0.5
+        elif phi > 3:
+            za = 0.25
         else:
-            phi = np.sign(currpos[1]-tarpos[1])*np.pi/2
+            za = 0
 
-        # calculate the effective angle needed to determine how to change Z
-        angle = np.mod(theta - np.pi, 2*np.pi)
-        # determine the rotation direction (+1 ccw, -1 cw)
-        if 0 <= phi <= np.pi:
-            if phi <= angle < (phi + np.pi):
-                return -1
-            else:
-                return 1
+        if lengthtotarget < 0.05:
+            z = 0
         else:
-            if np.mod(phi+np.pi, 2*np.pi) <= angle < phi:
-                return 1
-            else:
-                return -1
+            z = phi / t * za * direction
 
-    def getcontrols(self, theta, currpos, neighbour1pos, neighbour2pos, k, T_X, T_Z):
+        return z
+
+    def get_controls(self, theta, currpos, neighbour1pos, neighbour2pos, k, T_X, T_Z):
         """
 
         :param theta: orientation relative to the x-axis in the coordinate grid. positive ccw
@@ -117,6 +163,6 @@ class Controls(object):
             tarpos = self.findnextpos(currpos, neighbour1pos, currpos, k)
         else:
             tarpos = self.findnextpos(currpos, neighbour1pos, neighbour2pos, k)
-        nextZ = self.get_rot_dir(theta, currpos, tarpos)*self.get_rot_magn(theta, currpos, tarpos, T_Z)
-        nextX = self.get_trans_magn(currpos, tarpos, T_X, np.abs(nextZ*T_Z))
+        nextZ = get_rot_dir(theta, currpos, tarpos) * self.get_rot_magn(theta, currpos, tarpos, T_Z)
+        nextX = self.get_trans_magn(currpos, tarpos, T_X, np.abs(nextZ * T_Z))
         return nextX, nextZ

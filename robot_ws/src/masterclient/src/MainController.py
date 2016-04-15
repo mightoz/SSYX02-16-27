@@ -36,10 +36,10 @@ class MainController():
             for i in (1, numberofNodes-1):
                 #nextPosition = np.array([], dtype=np.float32)
                 #Calulate correctposition for robot
-                possiblenextPosition = self.CorrectPos2(nodes[i])
+                possiblenextPosition = self.correct_pos_2(nodes[i])
                 #Check if position is within a radius of 0.1m of possiblenextPosition
                 if (np.linalg.norm(nodes[i].GetCoords() - possiblenextPosition) > 0.1):
-                    self.MoveAToB2(nodes[i], possiblenextPosition) #Otherwise move
+                    self.move_to_2(nodes[i], possiblenextPosition) #Otherwise move
                     #TODO: ONLY CHECK AND THEN MOVE.
             else:
                 pass 
@@ -59,7 +59,7 @@ class MainController():
         plt.show()
 
     #Find correctposition for robot
-    def CorrectPos2(self, robot):
+    def correct_pos_2(self, robot):
         correctPosition = np.array([], dtype=np.float32)
         left = robot.GetLeftNeighbor()
         right = robot.GetRightNeighbor()
@@ -69,7 +69,7 @@ class MainController():
 
 
     #Move a robot from point A to B
-    def MoveAToB2(robot, target):
+    def move_to_2(robot, target):
         print "Moving , activerobot: ", robot
         initialPos = robot.GetCoords()
         robot.moveForward(0.1)
@@ -78,7 +78,7 @@ class MainController():
         return robot.GetRecordedPositions
 
 
-    def RunNextSegment2(robot, previousPos, targetPos):
+    def run_next_segment_2(robot, previousPos, targetPos):
         target = targetPos
         current = robot.GetCoords()        
 
@@ -96,7 +96,7 @@ class MainController():
         else:
             return robot
 
-    def calculateAngle2(previousPos, currentPos, targetPos):
+    def calculate_angle_2(previousPos, currentPos, targetPos):
         previous = previousPos
         current = currentPos
         target = targetPos
@@ -138,40 +138,6 @@ class MainController():
 
         return turningDegree
 
-def get_rot_dir(self, theta, startpos, endpos):
-     """
-
-     :param theta: angle
-     :param startpos: [xstart,ystart]
-     :param endpos: [xend,yend]
-     :return:
-     """
-     # calculate the angle between the x-axis and the line intersecting endpos and startpos
-     phi = 0
-     if np.abs(startpos[0]-endpos[0]) > 1e-30:
-         z1 = startpos-endpos
-         z2 = np.array([1, 0])
-         if startpos[1] >= endpos[1]:  # 0 <= phi <= pi
-             phi = np.arccos(np.dot(z1, z2)/(np.linalg.norm(z1)*np.linalg.norm(z2)))
-         else:  # pi < phi < 2*pi
-             phi = 2*np.pi - np.arccos(np.dot(z1, z2)/(np.linalg.norm(z1)*np.linalg.norm(z2)))
-     else:
-         phi = np.sign(startpos[1]-endpos[1])*np.pi/2
-
-     # calculate the effective angle needed to determine how to change Z
-     angle = np.mod(theta - np.pi, 2*np.pi)
-
-     # determine the rotation direction (+1 ccw, -1 cw)
-     if 0 <= phi <= np.pi:
-         if phi <= angle < (phi + np.pi):
-             return -1
-         else:
-             return 1
-     else:
-         if np.mod(phi+np.pi, 2*np.pi) < angle < phi:
-             return 1
-         else:
-             return -1
 #################################################################################################################################################
 #    def __init__(self):
 #        self.allCoords = np.array([],dtype=(np.float32,2))
