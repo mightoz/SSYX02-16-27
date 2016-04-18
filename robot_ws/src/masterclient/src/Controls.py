@@ -123,37 +123,40 @@ class Controls(object):
 
         direction = get_rot_dir(theta, current, target)
 
-        a = np.array([[np.cos(theta), np.sin(theta)], [np.sin(theta), -np.cos(theta)]])
-        b = target - current
-        (alfa, beta) = np.linalg.solve(a, b)
-
+        a = np.array([[np.cos(theta), np.sin(theta)],[np.sin(theta), -np.cos(theta)]])
+        b = target-current
+        (alfa,beta) = np.linalg.solve(a,b)
+        (alfa,beta) = (np.abs(alfa),np.abs(beta))
         lengthtotarget = np.linalg.norm(target-current)
 
-        if direction == 1:
-            phi = np.arctan(beta / alfa)
-        else :
-            phi = np.pi-(np.arctan(beta / alfa))
+        phi = np.arctan(beta / alfa)
+
+        x = np.arctan((target[1]-current[1])/(target[0]-current[0]))
+
+
+        if np.cos(theta-x) < 0:
+            print ('phi', phi)
+            phi = np.pi-phi
 
         if phi > (45*(np.pi)/180):
             za = 1
         elif phi > (20*(np.pi)/180):
             za = 0.5
-        elif phi > (3*(np.pi)/180):
+        elif phi > (5*(np.pi)/180):
             za = 0.25
         else:
             print "z blev noll"
             za = 0
-        print lengthtotarget
+            print ('lengthtotarget:', str(lengthtotarget))
+        print za
 
         if lengthtotarget < 0.05:
             z = 0
         else:
-            #if direction == 1:
             z = phi / t * za * direction
-           # else :
-            #    z = (np.pi-phi)/t * za * direction
-        print z
         return z
+
+
 
     def get_controls(self, theta, currpos, neighbour1pos, neighbour2pos, k, T_X, T_Z):
         """
