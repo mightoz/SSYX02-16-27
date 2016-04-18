@@ -32,8 +32,8 @@ sigma_meas = 0.05
 sigma_X = 0.05
 sigma_Z = 0.025
 
-iterations = 50
-n_iter_no_corr = 5
+iterations = 3
+n_iter_no_corr = 20
 n_robots = 3
 truepos = np.zeros((n_robots, 2, n_iter_no_corr*iterations))
 truetheta = np.zeros((n_robots, n_iter_no_corr*iterations))

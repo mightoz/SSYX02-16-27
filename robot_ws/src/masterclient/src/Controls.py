@@ -74,16 +74,16 @@ class Controls(object):
         else:
             return dist / T * (np.pi - phi) / np.pi
 
-    def get_trans_magn_2(self, current, target, t):
+    def get_trans_magn_2(self, current, target, t, phi):
 
-        lengthtotarget = np.sqrt(np.pow(target[0] - current[0], 2) + np.pow(target[1] - current[1], 2))
+        lengthtotarget = np.linalg.norm(target-current)
 
         # X FUNKTION AV Z OCH LENGTH
 
         if lengthtotarget > 0.5:
-            x = self.xMax
+            x = self.X_max
         elif lengthtotarget > 0.25:
-            x = 0.5 * len / t
+            x = 0.5 * lengthtotarget / t
         elif lengthtotarget > 0.05:
             x = 0.25 * lengthtotarget / t
         else:
@@ -125,26 +125,34 @@ class Controls(object):
 
         a = np.array([[np.cos(theta), np.sin(theta)], [np.sin(theta), -np.cos(theta)]])
         b = target - current
-        (alfa, beta) = np.linalg.solv(a, b)
+        (alfa, beta) = np.linalg.solve(a, b)
 
-        lengthtotarget = np.sqrt(np.pow(target[0] - current[0], 2) + np.pow(target[1] - current[1], 2))
+        lengthtotarget = np.linalg.norm(target-current)
 
-        phi = np.arctan(alfa / beta)
+        if direction == 1:
+            phi = np.arctan(beta / alfa)
+        else :
+            phi = np.pi-(np.arctan(beta / alfa))
 
-        if phi > 45:
-            za = self.zMax
-        elif phi > 20:
+        if phi > (45*(np.pi)/180):
+            za = 1
+        elif phi > (20*(np.pi)/180):
             za = 0.5
-        elif phi > 3:
+        elif phi > (3*(np.pi)/180):
             za = 0.25
         else:
+            print "z blev noll"
             za = 0
+        print lengthtotarget
 
         if lengthtotarget < 0.05:
             z = 0
         else:
+            #if direction == 1:
             z = phi / t * za * direction
-
+           # else :
+            #    z = (np.pi-phi)/t * za * direction
+        print z
         return z
 
     def get_controls(self, theta, currpos, neighbour1pos, neighbour2pos, k, T_X, T_Z):
@@ -166,6 +174,6 @@ class Controls(object):
             tarpos = self.findnextpos(currpos, neighbour1pos, neighbour2pos, k)
         """
         tarpos = find_next_pos(currpos, neighbour1pos, neighbour2pos, k)
-        nextZ = get_rot_dir(theta, currpos, tarpos) * self.get_rot_magn_1(theta, currpos, tarpos, T_Z)
+        nextZ = get_rot_dir(theta, currpos, tarpos) * self.get_rot_magn_2(theta, currpos, tarpos, T_Z)
         nextX = self.get_trans_magn_1(currpos, tarpos, T_X, np.abs(nextZ * T_Z))
         return nextX, nextZ
