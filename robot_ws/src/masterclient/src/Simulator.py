@@ -101,7 +101,8 @@ for j in range(0, iterations):
         controlnoiset = np.random.normal(0, sigma_X)
         controlnoiser = np.random.normal(0, sigma_Z)
         for m in range(0, n_robots):
-            x1, v1 = movenext(truepos[m, :, n_iter_no_corr*j+i-1], truetheta[m, n_iter_no_corr*j+i-1], X[m, j]*(1+controlnoiset), Z[m, j]*(1+controlnoiser), 0.5)
+            x1, v1 = movenext(truepos[m, :, n_iter_no_corr*j+i-1], truetheta[m, n_iter_no_corr*j+i-1],
+                              X[m, j]*(1+controlnoiset), Z[m, j]*(1+controlnoiser), 0.5)
             truetheta[m, n_iter_no_corr*j+i] += v1
             truepos[m, :, n_iter_no_corr*j+i] += np.array([x1[0, 0], x1[2, 0]])
             x3, v3 = kal[m].predict(currpos[m, :, n_iter_no_corr*j+i-1], currtheta[m, n_iter_no_corr*j+i-1],
