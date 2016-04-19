@@ -41,6 +41,7 @@ class Node(object):
         self.z = None
         self.theta = None
         self.pos = None
+	self.__axlen = 0.43 
 
         self.kalman = Kalman.Kalman(0.5, 0, 0, 0)
         self.controls = Controls.Controls(0, 0, 0, 0, 0, 2, 2, 0)
@@ -81,6 +82,9 @@ class Node(object):
 
     def get_theta(self):
         return self.theta
+
+    def get_axlen(self):
+        return self.__axlen
 
     def get_pos(self):
         return self.pos
