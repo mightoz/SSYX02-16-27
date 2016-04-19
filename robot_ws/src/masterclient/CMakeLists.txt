@@ -57,7 +57,7 @@ add_service_files(
 #   robotclient.MoveRobot.srv
 #   robotclient.RotateRobot.srv
 #   robotclient.GetCoord.srv
-	masterclient.GetCoord.srv
+    GetCoord.srv
  )
 
 ## Generate actions in the 'action' folder
