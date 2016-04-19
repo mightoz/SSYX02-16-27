@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import Robot
 
 sigma_meas = 0.05
-n_iter = 70
+n_iter = 100
 n_rob = 3
 n_iter_no_corr = n_rob-1
 
@@ -16,7 +16,7 @@ sigma_z = 0.025
 x = 0
 z = 0
 dt = 0.5
-k = 0.5
+k = 0.25
 t_x = 2
 t_z = 2
 ok_dist = 0.05
@@ -66,21 +66,24 @@ for j in range(0, n_iter):
         control_noise_r = np.random.normal(0, robot[i].get_kalman().get_sigma_z())
         if i != 0 and i != n_rob-1:
             x3, v3 = robot[i].get_controls().calc_controls(robot[i].get_theta(), robot[i].get_pos(),
-                                                           robot[i-1].get_pos(), robot[i+1].get_pos())
+                                                           robot[i-1].get_pos(), robot[i+1].get_pos(),
+                                                           robot[i].get___wheel_dist())
             robot[i].set_x(x3)
             robot[i].set_z(v3)
             true_robot[i].set_x(x3*(1+control_noise_t))
             true_robot[i].set_z(v3*(1+control_noise_r))
         elif i == 0:
             x3, v3 = robot[i].get_controls().calc_controls(robot[i].get_theta(), robot[i].get_pos(),
-                                                           base.get_pos(), robot[i+1].get_pos())
+                                                           base.get_pos(), robot[i+1].get_pos(),
+                                                           robot[i].get___wheel_dist())
             robot[i].set_x(x3)
             robot[i].set_z(v3)
             true_robot[i].set_x(x3*(1+control_noise_t))
             true_robot[i].set_z(v3*(1+control_noise_r))
         elif i == n_rob-1:
             x3, v3 = robot[i].get_controls().calc_controls(robot[i].get_theta(), robot[i].get_pos(),
-                                                           robot[i-1].get_pos(), end_node.get_pos())
+                                                           robot[i-1].get_pos(), end_node.get_pos(),
+                                                           robot[i].get___wheel_dist())
             robot[i].set_x(x3)
             robot[i].set_z(v3)
             true_robot[i].set_x(x3*(1+control_noise_t))
