@@ -32,9 +32,13 @@ sigma_meas = 0.05
 sigma_X = 0.05
 sigma_Z = 0.025
 
-iterations = 3
-n_iter_no_corr = 20
+iterations = 50
 n_robots = 3
+n_iter_no_corr = n_robots-1
+"""
+TODO: k (used in getcontrols) should be a function of n_iter_no_corr, X and Z.
+n_iter_no_cor/20.0 works fine for now
+"""
 truepos = np.zeros((n_robots, 2, n_iter_no_corr*iterations))
 truetheta = np.zeros((n_robots, n_iter_no_corr*iterations))
 measpos = np.zeros((n_robots, 2, iterations)) + np.random.normal(0, sigma_meas, (n_robots, 2, iterations))
@@ -67,49 +71,103 @@ endnodepos = 10*np.random.rand(2)-5
 basepos = np.array([8, 7])
 endnodepos = np.array([-7, -8])
 """
-X = np.zeros((n_robots, iterations))
-Z = np.zeros((n_robots, iterations))
+X = np.zeros((n_robots, n_iter_no_corr*iterations))
+Z = np.zeros((n_robots, n_iter_no_corr*iterations))
 
 for j in range(0, iterations):
+    controlnoiset = np.random.normal(0, sigma_X)
+    controlnoiser = np.random.normal(0, sigma_Z)
+    corr_idx = np.mod(j, n_robots)
+    for m in range(0, n_robots):
+        x1, v1 = movenext(truepos[m, :, n_iter_no_corr*j-1], truetheta[m, n_iter_no_corr*j-1],
+                          X[m, n_iter_no_corr*j-1]*(1+controlnoiset),
+                          Z[m, n_iter_no_corr*j-1]*(1+controlnoiser), 0.5)
+        truetheta[m, n_iter_no_corr*j] += v1
+        truepos[m, :, n_iter_no_corr*j] += np.array([x1[0, 0], x1[2, 0]])
+        if m != corr_idx:
+            x3, v3 = kal[m].predict(currpos[m, :, n_iter_no_corr*j-1], currtheta[m, n_iter_no_corr*j-1],
+                                    X[m, n_iter_no_corr*j-1], Z[m, n_iter_no_corr*j-1], 0.5)
+            currtheta[m, n_iter_no_corr*j] += v3
+            currpos[m, :, n_iter_no_corr*j] += np.array([x3[0, 0], x3[2, 0]])
+        else:
+            x3, v3 = kal[m].correct(currpos[m, :, n_iter_no_corr*j-1],
+                                           currtheta[corr_idx, n_iter_no_corr*j-1],  measpos[corr_idx, :, j],
+                                           X[corr_idx, n_iter_no_corr*j-1],
+                                           Z[corr_idx, n_iter_no_corr*j-1], 0.5)
+            currtheta[corr_idx, n_iter_no_corr*j] = v3
+            currpos[corr_idx, :, n_iter_no_corr*j] = np.array([x3[0, 0], x3[2, 0]])
+    for m in range(0, n_robots):
+        if m != 0 and m != n_robots-1:
+            X[m, n_iter_no_corr*j], Z[m, n_iter_no_corr*j] = \
+                ctrl[m].get_controls(currtheta[m, n_iter_no_corr*j], currpos[m, :, n_iter_no_corr*j],
+                                     currpos[m-1, :, n_iter_no_corr*j], currpos[m+1, :, n_iter_no_corr*j],
+                                     n_iter_no_corr/20.0, 2, 2)
+        elif m == 0:
+            X[m, n_iter_no_corr*j], Z[m, n_iter_no_corr*j] = \
+                ctrl[m].get_controls(currtheta[m, n_iter_no_corr*j], currpos[m, :, n_iter_no_corr*j],
+                                     basepos, currpos[m+1, :, n_iter_no_corr*j],
+                                     n_iter_no_corr/20.0, 2, 2)
+        elif m == n_robots-1:
+            X[m, n_iter_no_corr*j], Z[m, n_iter_no_corr*j] = \
+                ctrl[m].get_controls(currtheta[m, n_iter_no_corr*j], currpos[m, :, n_iter_no_corr*j],
+                                     currpos[m-1, :, n_iter_no_corr*j], endnodepos,
+                                     n_iter_no_corr/20.0, 2, 2)
+
+
+
+"""
     if j > 0:
         controlnoiset = np.random.normal(0, sigma_X)
         controlnoiser = np.random.normal(0, sigma_Z)
         for m in range(0, n_robots):
-            x1, v1 = movenext(truepos[m, :, n_iter_no_corr*j-1], truetheta[m, n_iter_no_corr*j-1], X[m, j-1]*(1+controlnoiset), Z[m, j-1]*(1+controlnoiser), 0.5)
+            x1, v1 = movenext(truepos[m, :, n_iter_no_corr*j-1], truetheta[m, n_iter_no_corr*j-1], X[m, n_iter_no_corr*j-1]*(1+controlnoiset), Z[m, n_iter_no_corr*j-1]*(1+controlnoiser), 0.5)
             truetheta[m, n_iter_no_corr*j] += v1
             truepos[m, :, n_iter_no_corr*j] += np.array([x1[0, 0], x1[2, 0]])
             measpos[m, :, j] += truepos[m, :, n_iter_no_corr*j]
             x3, v3 = kal[m].correct(currpos[m, :, n_iter_no_corr*j-1], currtheta[m, n_iter_no_corr*j-1],  measpos[m, :, j],
-                                    X[m, j-1], Z[m, j-1], 0.5)
+                                    X[m, n_iter_no_corr*j-1], Z[m, n_iter_no_corr*j-1], 0.5)
             currtheta[m, n_iter_no_corr*j] = v3
             currpos[m, :, n_iter_no_corr*j] = np.array([x3[0, 0], x3[2, 0]])
-    for m in range(0, n_robots):
-        if m != 0 and m != n_robots-1:
-            X[m, j], Z[m, j] = ctrl[m].get_controls(currtheta[m, n_iter_no_corr*j], currpos[m, :, n_iter_no_corr*j],
-                                                    currpos[m-1, :, n_iter_no_corr*j], currpos[m+1, :, n_iter_no_corr*j],
-                                                    0.1, 2, 2)
-        elif m == 0:
-            X[m, j], Z[m, j] = ctrl[m].get_controls(currtheta[m, n_iter_no_corr*j], currpos[m, :, n_iter_no_corr*j],
-                                                    basepos, currpos[m+1, :, n_iter_no_corr*j],
-                                                    0.1, 2, 2)
-        elif m == n_robots-1:
-            X[m, j], Z[m, j] = ctrl[m].get_controls(currtheta[m, n_iter_no_corr*j], currpos[m, :, n_iter_no_corr*j],
-                                                    currpos[m-1, :, n_iter_no_corr*j], endnodepos,
-                                                    0.1, 2, 2)
+        for m in range(0, n_robots):
+            if m != 0 and m != n_robots-1:
+                X[m, n_iter_no_corr*j], Z[m, n_iter_no_corr*j] = ctrl[m].get_controls(currtheta[m, n_iter_no_corr*j], currpos[m, :, n_iter_no_corr*j],
+                                                                                      currpos[m-1, :, n_iter_no_corr*j], currpos[m+1, :, n_iter_no_corr*j],
+                                                                                      n_iter_no_corr/20.0, 2, 2)
+            elif m == 0:
+                X[m, n_iter_no_corr*j], Z[m, n_iter_no_corr*j] = ctrl[m].get_controls(currtheta[m, n_iter_no_corr*j], currpos[m, :, n_iter_no_corr*j],
+                                                                                      basepos, currpos[m+1, :, n_iter_no_corr*j],
+                                                                                      n_iter_no_corr/20.0, 2, 2)
+            elif m == n_robots-1:
+                X[m, n_iter_no_corr*j], Z[m, n_iter_no_corr*j] = ctrl[m].get_controls(currtheta[m, n_iter_no_corr*j], currpos[m, :, n_iter_no_corr*j],
+                                                                                      currpos[m-1, :, n_iter_no_corr*j], endnodepos,
+                                                                                      n_iter_no_corr/20.0, 2, 2)
 
     for i in range(1, n_iter_no_corr):
         controlnoiset = np.random.normal(0, sigma_X)
         controlnoiser = np.random.normal(0, sigma_Z)
         for m in range(0, n_robots):
             x1, v1 = movenext(truepos[m, :, n_iter_no_corr*j+i-1], truetheta[m, n_iter_no_corr*j+i-1],
-                              X[m, j]*(1+controlnoiset), Z[m, j]*(1+controlnoiser), 0.5)
+                              X[m, n_iter_no_corr*j+i-1]*(1+controlnoiset), Z[m, n_iter_no_corr*j+i-1]*(1+controlnoiser), 0.5)
             truetheta[m, n_iter_no_corr*j+i] += v1
             truepos[m, :, n_iter_no_corr*j+i] += np.array([x1[0, 0], x1[2, 0]])
             x3, v3 = kal[m].predict(currpos[m, :, n_iter_no_corr*j+i-1], currtheta[m, n_iter_no_corr*j+i-1],
-                                    X[m, j], Z[m, j], 0.5)
+                                    X[m, n_iter_no_corr*j+i-1], Z[m, n_iter_no_corr*j+i-1], 0.5)
             currtheta[m, n_iter_no_corr*j+i] += v3
             currpos[m, :, n_iter_no_corr*j+i] += np.array([x3[0, 0], x3[2, 0]])
-
+        for m in range(0, n_robots):
+            if m != 0 and m != n_robots-1:
+                X[m, n_iter_no_corr*j+i], Z[m, n_iter_no_corr*j+i] = ctrl[m].get_controls(currtheta[m, n_iter_no_corr*j+i], currpos[m, :, n_iter_no_corr*j+i],
+                                                                                          currpos[m-1, :, n_iter_no_corr*j+i], currpos[m+1, :, n_iter_no_corr*j+i],
+                                                                                          n_iter_no_corr/20.0, 2, 2)
+            elif m == 0:
+                X[m, n_iter_no_corr*j+i], Z[m, n_iter_no_corr*j+i] = ctrl[m].get_controls(currtheta[m, n_iter_no_corr*j+i], currpos[m, :, n_iter_no_corr*j+i],
+                                                                                          basepos, currpos[m+1, :, n_iter_no_corr*j+i],
+                                                                                          n_iter_no_corr/20.0, 2, 2)
+            elif m == n_robots-1:
+                X[m, n_iter_no_corr*j+i], Z[m, n_iter_no_corr*j+i] = ctrl[m].get_controls(currtheta[m, n_iter_no_corr*j+i], currpos[m, :, n_iter_no_corr*j+i],
+                                                                                          currpos[m-1, :, n_iter_no_corr*j+i], endnodepos,
+                                                                                          n_iter_no_corr/20.0, 2, 2)
+"""
 """
 print np.sum(np.linalg.norm(truepos-corrpos, axis=0))
 print np.sum(np.linalg.norm(truepos-calcpos, axis=0))
