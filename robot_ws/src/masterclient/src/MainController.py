@@ -26,7 +26,7 @@ class MainController():
                 nodes.append(Node.Node(i, "End"))
             else :
                 nodes.append(Node.Node(i, "Robot"))
-        
+
 
     def align_robots_1(self):
         # Choose number of self.nodes
