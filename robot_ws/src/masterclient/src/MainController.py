@@ -6,6 +6,7 @@ import rospy
 from rospy.numpy_msg import numpy_msg
 from rospy_tutorials.msg import Floats
 from geometry_msgs.msg import Twist
+from std_msgs.msg import String
 
 import numpy as np
 import math
@@ -18,67 +19,76 @@ from robotclient.srv import *
 class MainController():
     def __init__(self, nbr_of_nodes):
         rospy.init_node('robot_coordinator')
-        rospy.Subscriber("iterator", None, self.align_robots_2)
-        rospy.Subscriber("terminator", None, self.terminate)
+        rospy.Subscriber("iterator", String, self.align_robots)
+#Why is this necessary?  
+#       rospy.Subscriber("terminator", None, self.terminate)
 
-        nodes = []
-        for i in range (0, nbr_of_nodes-1):
+	self.nbr_of_nodes = nbr_of_nodes
+        self.nodes = []
+        for i in range (0, self.nbr_of_nodes):
             if i == 0:
-                nodes.append(Node.Node(i, "Base"))
-            elif i == nbr_of_nodes-1 :
-                nodes.append(Node.Node(i, "End"))
+                self.nodes += [Node.Node(i, "Base")]
+            elif i == self.nbr_of_nodes-1 :
+                self.nodes += [Node.Node(i, "End")]
             else :
-                nodes.append(Node.Node(i, "Robot"))
-
-
-        self.calls = 0
-
-        rospy.spin
+                self.nodes += [Node.Node(i, "Robot")]
+        self.calls = 0 #Increase after every iteration
+        rospy.spin()
+	rospy.on_shutdown(self.terminator)
+	
+    def align_robots(self, data):
+	#Add update Base/End position?
+	if (data.data == "align1"):
+            self.align_robots_1()
+	elif (data.data == "align2"):
+	    self.align_robots_2()
+	self.calls += 1
+	
 
     def align_robots_1(self):
         # Choose number of self.nodes
-        number_of_nodes = 4
+        """number_of_nodes = 4
         for i in range(0, number_of_nodes):
             self.nodes.append(Node.Node(i))  # create instances of all the Nodes
         else:
-            pass
+            pass"""
 
         # Set while condition too True.
         not_finished = True
-        while (not_finished):
-            # Loop through all of the robots
-            for i in range(1, number_of_nodes - 1):
-                # nextPosition = np.array([], dtype=np.float32)
-                # Calulate correctposition for robot
+        #while (not_finished):
+        # Loop through all of the robots
+        for i in range(1, self.nbr_of_nodes):
+            # Calulate correctposition for robot
+	    print i
+            possible_next_position = self.correct_pos(self.nodes[i])
+            print possible_next_position
+            # Check if position is within a radius of 0.1m of possible_next_position
+            if (np.linalg.norm(self.nodes[i].measure_coordinates() - possible_next_position) > 0.1):
+                print "Tries to move"
+                self.move_a_to_b(self.nodes[i], possible_next_position)  # Otherwise move
+                # TODO: ONLY CHECK AND THEN MOVE.
+            
+    def align_robots_2(self):
+	print "mainfunciton"
 
-                possible_next_position = self.correct_pos(self.nodes[i])
-                print possible_next_position
-                # Check if position is within a radius of 0.1m of possible_next_position
-                if (np.linalg.norm(self.nodes[i].measure_coordinates() - possible_next_position) > 0.1):
-                    print "Tries to move"
-                    self.move_a_to_b(self.nodes[i], possible_next_position)  # Otherwise move
-                    # TODO: ONLY CHECK AND THEN MOVE.
-            else:
-                pass
-                # For printing
+    def terminator(self):
+        # For printing, colors hardcoded
         colors = ['gx', 'ro', 'bo', 'gx']
-        for i in (0, number_of_nodes):
-            print "Recorded positions for Node %s are %s" % (self.nodes[i], self.nodes[i].get_recorded_positions())
-            print "Recorded X positions for Node %s are %s" % (self.nodes[i], self.nodes[i].getRecordedXPositions())
-            print "Recorded Y positions for Node %s are %s" % (self.nodes[i], self.nodes[i].getRecordedYPositions())
-            plt.plot(self.nodes[i].getRecordedXPositions(), self.nodes[i].getRecordedYPositions(), colors[i])
+        for i in range(0, self.nbr_of_nodes):
+            #print "Recorded positions for Node %s are %s" % (self.nodes[i], self.nodes[i].get_recorded_positions())
+            #print "Recorded X positions for Node %s are %s" % (self.nodes[i], self.nodes[i].get_recorded_x_positions())
+            #print "Recorded Y positions for Node %s are %s" % (self.nodes[i], self.nodes[i].get_recorded_y_positions())
+            plt.plot(self.nodes[i].get_recorded_x_positions(), self.nodes[i].get_recorded_y_positions(), colors[i])
         else:
             pass
+	#Hardcoded positions of RCM?
         plt.plot(2, 0, 'kx')
         plt.plot(1, -2, 'kx')
         plt.plot(-1, 1, 'kx')
         plt.axis([-2, 3.5, -3, 3.5])
         plt.show()
 
-    def align_robots_2(self):
-        self.calls += 1
-
-    def terminate(self):
+############################################################################################################	
 
 
 
@@ -87,8 +97,9 @@ class MainController():
         correct_position = np.array([], dtype=np.float32)
         left = robot.get_left_neighbor()
         right = robot.get_right_neighbor()
-        correct_position = (self.nodes[left].measure_coordinates() + self.nodes[
-            right].measure_coordinates()) / 2  # Calculates correct position
+	print left
+	print right
+        correct_position = (self.nodes[left].measure_coordinates() + self.nodes[right].measure_coordinates()) / 2  # Calculates correct position
         return correct_position
 
     # Move a robot from point A to B
@@ -165,6 +176,6 @@ if __name__ == '__main__':
     # print rospy.get_caller_id()
 
     try:
-        ne = MainController()
+        ne = MainController(4)
     except rospy.ROSInterruptException:
         pass

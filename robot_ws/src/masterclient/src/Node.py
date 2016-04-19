@@ -96,6 +96,7 @@ class Node(object):
         return self.controls
 
     def measure_coordinates(self):
+	#Perhaps not empty, returns weirds
         tmp_pos = np.empty([], dtype=np.float32)
         if (self.type == "Robot"):
             srv = 'get_coord' + str(self.node)
