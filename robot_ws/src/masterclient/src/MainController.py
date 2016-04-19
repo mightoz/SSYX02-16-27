@@ -16,9 +16,17 @@ from robotclient.srv import *
 
 
 class MainController():
-    def __init__(self):
-        self.nodes = []  # Array containing pointers to instances of all the Nodes
-
+    def __init__(self, nbr_of_robots):
+        #self.nodes = []  # Array containing pointers to instances of all the Nodes. Only needed fo align_robots_1
+        nodes = []
+        for i in range (0, nbr_of_robots):
+            if i == 0:
+                nodes.append(Node.Node(i, "Base"))
+            elif i == nbr_of_robots :
+                nodes.append(Node.Node(i, "End"))
+            else :
+                nodes.append(Node.Node(i, "Robot"))
+        
 
     def align_robots_1(self):
         # Choose number of self.nodes
