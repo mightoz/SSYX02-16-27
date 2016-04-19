@@ -78,16 +78,16 @@ class Controls(object):
             else:
                 return dist / self.tX * (np.pi - phi) / np.pi
 
-    def get_trans_magn_2(self, current, target, t):
+    def get_trans_magn_2(self, current, target, t, phi):
 
-        lengthtotarget = np.sqrt(np.pow(target[0] - current[0], 2) + np.pow(target[1] - current[1], 2))
+        lengthtotarget = np.linalg.norm(target-current)
 
         # X FUNKTION AV Z OCH LENGTH
 
         if lengthtotarget > 0.5:
-            x = self.xMax
+            x = self.X_max
         elif lengthtotarget > 0.25:
-            x = 0.5 * len / t
+            x = 0.5 * lengthtotarget / t
         elif lengthtotarget > 0.05:
             x = 0.25 * lengthtotarget / t
         else:
@@ -127,29 +127,40 @@ class Controls(object):
 
         direction = get_rot_dir(theta, current, target)
 
-        a = np.array([[np.cos(theta), np.sin(theta)], [np.sin(theta), -np.cos(theta)]])
-        b = target - current
-        (alfa, beta) = np.linalg.solv(a, b)
+        a = np.array([[np.cos(theta), np.sin(theta)],[np.sin(theta), -np.cos(theta)]])
+        b = target-current
+        (alfa,beta) = np.linalg.solve(a,b)
+        (alfa,beta) = (np.abs(alfa),np.abs(beta))
+        lengthtotarget = np.linalg.norm(target-current)
 
-        lengthtotarget = np.sqrt(np.pow(target[0] - current[0], 2) + np.pow(target[1] - current[1], 2))
+        phi = np.arctan(beta / alfa)
 
-        phi = np.arctan(alfa / beta)
+        x = np.arctan((target[1]-current[1])/(target[0]-current[0]))
 
-        if phi > 45:
-            za = self.zMax
-        elif phi > 20:
+
+        if np.cos(theta-x) < 0:
+            print ('phi', phi)
+            phi = np.pi-phi
+
+        if phi > (45*(np.pi)/180):
+            za = 1
+        elif phi > (20*(np.pi)/180):
             za = 0.5
-        elif phi > 3:
+        elif phi > (5*(np.pi)/180):
             za = 0.25
         else:
+            print "z blev noll"
             za = 0
+            print ('lengthtotarget:', str(lengthtotarget))
+        print za
 
         if lengthtotarget < 0.05:
             z = 0
         else:
             z = phi / t * za * direction
-
         return z
+
+
 
     def get_controls(self, theta, currpos, neighbour1pos, neighbour2pos, k, T_X, T_Z):
         """
@@ -163,7 +174,7 @@ class Controls(object):
         :param T_Z: Time to face target pos
         :return: the next controls; X, Z
         """
-        tarpos = find_next_pos(currpos, neighbour1pos, neighbour2pos, k)
+        tarpos = self.find_next_pos(currpos, neighbour1pos, neighbour2pos)
         nextZ = get_rot_dir(theta, currpos, tarpos) * self.get_rot_magn_1(theta, currpos, tarpos, T_Z)
         nextX = self.get_trans_magn_1(currpos, tarpos, T_X, np.abs(nextZ * T_Z), 0.02)
         return nextX, nextZ
