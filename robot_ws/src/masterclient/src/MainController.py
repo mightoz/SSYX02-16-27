@@ -16,9 +16,24 @@ from robotclient.srv import *
 
 
 class MainController():
-    def __init__(self):
-        self.nodes = []  # Array containing pointers to instances of all the Nodes
+    def __init__(self, nbr_of_nodes):
+        rospy.init_node('robot_coordinator')
+        rospy.Subscriber("iterator", None, self.align_robots_2)
+        rospy.Subscriber("terminator", None, self.terminate)
 
+        nodes = []
+        for i in range (0, nbr_of_nodes-1):
+            if i == 0:
+                nodes.append(Node.Node(i, "Base"))
+            elif i == nbr_of_nodes-1 :
+                nodes.append(Node.Node(i, "End"))
+            else :
+                nodes.append(Node.Node(i, "Robot"))
+
+
+        self.calls = 0
+
+        rospy.spin
 
     def align_robots_1(self):
         # Choose number of self.nodes
@@ -39,7 +54,7 @@ class MainController():
                 possible_next_position = self.correct_pos(self.nodes[i])
                 print possible_next_position
                 # Check if position is within a radius of 0.1m of possible_next_position
-                if (np.linalg.norm(self.nodes[i].GetCoords() - possible_next_position) > 0.1):
+                if (np.linalg.norm(self.nodes[i].measure_coordinates() - possible_next_position) > 0.1):
                     print "Tries to move"
                     self.move_a_to_b(self.nodes[i], possible_next_position)  # Otherwise move
                     # TODO: ONLY CHECK AND THEN MOVE.
@@ -48,7 +63,7 @@ class MainController():
                 # For printing
         colors = ['gx', 'ro', 'bo', 'gx']
         for i in (0, number_of_nodes):
-            print "Recorded positions for Node %s are %s" % (self.nodes[i], self.nodes[i].GetRecordedPositions())
+            print "Recorded positions for Node %s are %s" % (self.nodes[i], self.nodes[i].get_recorded_positions())
             print "Recorded X positions for Node %s are %s" % (self.nodes[i], self.nodes[i].getRecordedXPositions())
             print "Recorded Y positions for Node %s are %s" % (self.nodes[i], self.nodes[i].getRecordedYPositions())
             plt.plot(self.nodes[i].getRecordedXPositions(), self.nodes[i].getRecordedYPositions(), colors[i])
@@ -61,41 +76,44 @@ class MainController():
         plt.show()
 
     def align_robots_2(self):
+        self.calls += 1
+
+    def terminate(self):
 
 
 
     # Find correctposition for robot
     def correct_pos(self, robot):
         correct_position = np.array([], dtype=np.float32)
-        left = robot.GetLeftNeighbor()
-        right = robot.GetRightNeighbor()
-        correct_position = (self.nodes[left].GetCoords() + self.nodes[
-            right].GetCoords()) / 2  # Calculates correct position
+        left = robot.get_left_neighbor()
+        right = robot.get_right_neighbor()
+        correct_position = (self.nodes[left].measure_coordinates() + self.nodes[
+            right].measure_coordinates()) / 2  # Calculates correct position
         return correct_position
 
     # Move a robot from point A to B
     def move_a_to_b(self, robot, target):
         print "Moving , activerobot: ", robot
-        initial_pos = robot.GetCoords()
-        robot.DriveForward(0.1)
+        initial_pos = robot.measure_coordinates()
+        robot.drive_forward(0.1)
         self.run_next_segment(robot, initial_pos, target)
 
-        return robot.GetRecordedPositions
+        return robot.get_recorded_positions
 
     def run_next_segment(self, robot, previous_pos, target_pos):
         target = target_pos
-        current = robot.GetCoords()
+        current = robot.measure_coordinates()
 
         if (not (((np.absolute(target[0] - current[0])) <= 0.15) & (
                     (np.absolute(target[1] - current[1])) <= 0.15))):
             length = math.sqrt(math.pow((target[0] - current[0]), 2) + math.pow((target[1] - current[1]), 2))
             deg = self.calculate_angle(previous_pos, current, target)
             if length <= 0.1:
-                robot.Rotate(deg)
-                robot.DriveForward(length)
+                robot.rotate(deg)
+                robot.drive_forward(length)
             else:
-                robot.Rotate(deg)
-                robot.DriveForward(0.1)
+                robot.rotate(deg)
+                robot.drive_forward(0.1)
             self.run_next_segment(robot, current, target)
         else:
             return robot
@@ -144,7 +162,6 @@ class MainController():
 
 
 if __name__ == '__main__':
-    rospy.init_node('masternode')
     # print rospy.get_caller_id()
 
     try:
