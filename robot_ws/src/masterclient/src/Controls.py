@@ -81,7 +81,7 @@ class Controls(object):
         # X FUNKTION AV Z OCH LENGTH
 
         if lengthtotarget > 0.5:
-            x = self.X_max
+            x = 1
         elif lengthtotarget > 0.25:
             x = 0.5 * lengthtotarget / t
         elif lengthtotarget > 0.05:
@@ -178,5 +178,5 @@ class Controls(object):
         """
         tarpos = find_next_pos(currpos, neighbour1pos, neighbour2pos, k)
         nextZ = get_rot_dir(theta, currpos, tarpos) * self.get_rot_magn_2(theta, currpos, tarpos, T_Z)
-        nextX = self.get_trans_magn_1(currpos, tarpos, T_X, np.abs(nextZ * T_Z))
+        nextX = self.get_trans_magn_2(currpos, tarpos, T_X, np.abs(nextZ * T_Z))
         return nextX, nextZ
