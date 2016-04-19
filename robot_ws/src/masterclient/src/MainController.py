@@ -16,17 +16,24 @@ from robotclient.srv import *
 
 
 class MainController():
-    def __init__(self, nbr_of_robots):
-        #self.nodes = []  # Array containing pointers to instances of all the Nodes. Only needed fo align_robots_1
+    def __init__(self, nbr_of_nodes):
+        rospy.init_node('robot_coordinator')
+        rospy.Subscriber("iterator", None, self.align_robots_2)
+        rospy.Subscriber("terminator", None, self.terminate)
+
         nodes = []
-        for i in range (0, nbr_of_robots-1):
+        for i in range (0, nbr_of_nodes-1):
             if i == 0:
                 nodes.append(Node.Node(i, "Base"))
-            elif i == nbr_of_robots :
+            elif i == nbr_of_nodes-1 :
                 nodes.append(Node.Node(i, "End"))
             else :
                 nodes.append(Node.Node(i, "Robot"))
 
+
+        self.calls = 0
+
+        rospy.spin
 
     def align_robots_1(self):
         # Choose number of self.nodes
@@ -69,6 +76,9 @@ class MainController():
         plt.show()
 
     def align_robots_2(self):
+        self.calls += 1
+
+    def terminate(self):
 
 
 
@@ -152,7 +162,6 @@ class MainController():
 
 
 if __name__ == '__main__':
-    rospy.init_node('masternode')
     # print rospy.get_caller_id()
 
     try:
