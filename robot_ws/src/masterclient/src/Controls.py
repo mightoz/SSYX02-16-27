@@ -1,20 +1,6 @@
 import numpy as np
 
 
-def find_next_pos(currpos, neighbour1pos, neighbour2pos, k):
-    """
-
-    :param currpos: your position
-    :param neighbour1pos: your first neighbour
-    :param neighbour2pos: your left neighbour
-    :param k: some constant (0<k<1) to get target = pos + k*grad(f)
-    :return: the next target position
-    """
-    dist1 = neighbour1pos - currpos
-    dist2 = neighbour2pos - currpos
-    return currpos + k * (dist1 + dist2)
-
-
 def get_rot_dir(theta, currpos, tarpos):
     """
 
@@ -51,13 +37,28 @@ def get_rot_dir(theta, currpos, tarpos):
 
 
 class Controls(object):
-    def __init__(self, x_min, x_max, z_min, z_max):
+    def __init__(self, x_min, x_max, z_min, z_max, k, tX, tZ):
         self.X_min = x_min
         self.X_max = x_max
         self.Z_min = z_min
         self.Z_max = z_max
+        self.k = k
+        self.tX = tX
+        self.tZ = tZ
 
-    def get_trans_magn_1(self, currpos, tarpos, T, phi):
+    def find_next_pos(self, currpos, neighbour1pos, neighbour2pos):
+        """
+
+        :param currpos: your position
+        :param neighbour1pos: your first neighbour
+        :param neighbour2pos: your left neighbour
+        :return: the next target position
+        """
+        dist1 = neighbour1pos - currpos
+        dist2 = neighbour2pos - currpos
+        return currpos + self.k * (dist1 + dist2)
+
+    def get_trans_magn_1(self, currpos, tarpos, phi, okdist):
         """
 
         :param currpos: [xstart, ystart]
@@ -67,12 +68,15 @@ class Controls(object):
         :return: The velocity for the next iteration
         """
         dist = np.linalg.norm(currpos - tarpos)
-        if dist / T * (np.pi - phi) / np.pi > self.X_max:
-            return self.X_max
-        elif dist / T * (np.pi - phi) / np.pi < self.X_min:
-            return self.X_min
+        if dist < okdist:
+            return 0
         else:
-            return dist / T * (np.pi - phi) / np.pi
+            if dist / self.tX * (np.pi - phi) / np.pi > self.X_max:
+                return self.X_max
+            elif dist / self.tX * (np.pi - phi) / np.pi < self.X_min:
+                return self.X_min
+            else:
+                return dist / self.tX * (np.pi - phi) / np.pi
 
     def get_trans_magn_2(self, current, target, t):
 
@@ -159,13 +163,50 @@ class Controls(object):
         :param T_Z: Time to face target pos
         :return: the next controls; X, Z
         """
-        """
-        if neighbour2pos == 0:
-            tarpos = self.findnextpos(currpos, neighbour1pos, currpos, k)
-        else:
-            tarpos = self.findnextpos(currpos, neighbour1pos, neighbour2pos, k)
-        """
         tarpos = find_next_pos(currpos, neighbour1pos, neighbour2pos, k)
         nextZ = get_rot_dir(theta, currpos, tarpos) * self.get_rot_magn_1(theta, currpos, tarpos, T_Z)
-        nextX = self.get_trans_magn_1(currpos, tarpos, T_X, np.abs(nextZ * T_Z))
+        nextX = self.get_trans_magn_1(currpos, tarpos, T_X, np.abs(nextZ * T_Z), 0.02)
         return nextX, nextZ
+
+
+    def setXMax(self, val):
+        self.X_max = val
+
+    def setXMin(self, val):
+        self.X_min = val
+
+    def setZMax(self, val):
+        self.Z_max = val
+
+    def setZMin(self, val):
+        self. Z_min = val
+
+    def setK(self, val):
+        self.k = val
+
+    def setTX(self, val):
+        self.tX = val
+
+    def setTZ(self, val):
+        self.tZ = val
+
+    def getXMax(self):
+        return self.X_max
+
+    def getXMin(self):
+        return self.X_min
+
+    def getZMax(self):
+        return self.Z_max
+
+    def getZMin(self):
+        return self. Z_min
+
+    def getK(self):
+        return self.k
+
+    def getTX(self):
+        return self.tX
+
+    def getTZ(self):
+        return self.tZ
