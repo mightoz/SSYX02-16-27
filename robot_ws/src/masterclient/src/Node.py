@@ -37,10 +37,10 @@ class Node(object):
         self.recorded_x_positions = np.array([], dtype=np.float32)
         self.recorded_y_positions = np.array([], dtype=np.float32)
 
-        self.x = None
-        self.z = None
-        self.theta = None
-        self.pos = None
+        self.x = 0 #temp for testing
+        self.z = 0 #temp for testing
+        self.theta = 0 #temp for testing
+        self.pos = np.array([0,0], dtype=np.float32) #temp for testing
 	self.__axlen = 0.43 
 
         self.kalman = Kalman.Kalman(0.5, 0, 0, 0)
