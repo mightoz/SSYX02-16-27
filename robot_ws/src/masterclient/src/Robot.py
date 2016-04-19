@@ -5,56 +5,56 @@ import Controls
 
 class Robot(object):
 
-    def __init__(self, X, Z, theta, pos):
-        self.transVel = X
-        self.angVel = Z
+    def __init__(self, x, z, theta, pos):
+        self.trans_vel = x
+        self.ang_vel = z
         self.orientation = theta
-        self.currPos = pos
+        self.curr_pos = pos
         self.kalman = Kalman.Kalman(0.5, 0, 0, 0)
-        self.controls = Controls.Controls(0, 0, 0, 0, 0, 2, 2)
+        self.controls = Controls.Controls(0, 0, 0, 0, 0, 2, 2, 0)
 
-    def setKalman(self, sigmaMeas, sigmaX, sigmaZ, dt):
-        self.kalman.setStdMeas(sigmaMeas)
-        self.kalman.setStdX(sigmaX)
-        self.kalman.setStdZ(sigmaZ)
-        self.kalman.setTimeStep(dt)
+    def set_kalman(self, sigma_meas, sigma_x, sigma_z, dt):
+        self.kalman.set_sigma_meas(sigma_meas)
+        self.kalman.set_sigma_x(sigma_x)
+        self.kalman.set_sigma_z(sigma_z)
+        self.kalman.set_time_step(dt)
 
-    def setControls(self, xMin, xMax, zMin, zMax, k, tX, tZ):
-        self.controls.setXMin(xMin)
-        self.controls.setXMax(xMax)
-        self.controls.setZMin(zMin)
-        self.controls.setZMax(zMax)
-        self.controls.setK(k)
-        self.controls.setTX(tX)
-        self.controls.setTZ(tZ)
+    def set_controls(self, x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist):
+        self.controls.set_x_min(x_min)
+        self.controls.set_x_max(x_max)
+        self.controls.set_z_min(z_min)
+        self.controls.set_z_max(z_max)
+        self.controls.set_k(k)
+        self.controls.set_t_x(t_x)
+        self.controls.set_t_z(t_z)
+        self.controls.set_ok_dist(ok_dist)
 
-    def setX(self, val):
-        self.transVel = val
+    def set_x(self, val):
+        self.trans_vel = val
 
-    def setZ(self, val):
-        self.angVel = val
+    def set_z(self, val):
+        self.ang_vel = val
 
-    def setTheta(self, val):
+    def set_theta(self, val):
         self.orientation = val
-        self.kalman.setOrientation(val)
 
-    def setPos(self, val):
-        self.currPos = val
+    def set_pos(self, val):
+        self.curr_pos = val
 
-    def getX(self):
-        return self.transVel
+    def get_x(self):
+        return self.trans_vel
 
-    def getZ(self):
-        return self.angVel
+    def get_z(self):
+        return self.ang_vel
 
-    def getTheta(self):
+    def get_theta(self):
         return self.orientation
 
-    def getPos(self):
-        return self.currPos
+    def get_pos(self):
+        return self.curr_pos
 
-    def getKalman(self):
+    def get_kalman(self):
         return self.kalman
 
-    def getControls(self):
+    def get_controls(self):
         return self.controls

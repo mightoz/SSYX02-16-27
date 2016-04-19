@@ -3,62 +3,61 @@ import numpy as np
 
 class Kalman(object):
 
-    def __init__(self, sigma_meas, sigma_X, sigma_Z, dt):
+    def __init__(self, sigma_meas, sigma_x, sigma_z, dt):
         """
 
         :param sigma_meas: standard deviation of measurement noise. sqrt(2) times the gauss radius
         (where the function has decreased by a factor exp(-1)) of the control
-        :param sigma_X: standard deviation of translational noise relative to 1 (m/s for example). sqrt(2) times
+        :param sigma_x: standard deviation of translational noise relative to 1 (m/s for example). sqrt(2) times
         the gauss radius (where the function has decreased by a factor exp(-1)) of the control
-        :param sigma_Z: standard deviation of rotational noise relative to 1 (rad/s for example). sqrt(2) times
+        :param sigma_z: standard deviation of rotational noise relative to 1 (rad/s for example). sqrt(2) times
         the gauss radius (where the function has decreased by a factor exp(-1)) of the control
         :param dt: Time between each iteration
         """
         self.p = 0.1*np.eye(4)
         self.Q = np.zeros((4, 4))
-        self.stdMeas = sigma_meas
-        self.stdDevX = sigma_X
-        self.stdDevZ = sigma_Z
-        self.timeStep = dt
+        self.std_meas = sigma_meas
+        self.std_dev_x = sigma_x
+        self.std_dev_z = sigma_z
+        self.time_step = dt
         for i in range(0, 30):
-            a, b = self.correct(np.array([0, 0]), 0, np.random.normal(0, self.stdMeas, 2), 0, 1)
+            self.correct(np.array([0, 0]), 0, np.random.normal(0, self.std_meas, 2), 0, 1)
 
-
-    def get_noise(self, theta, X, Z):
+    def get_noise(self, theta, x, z):
         """
 
         :param theta: orientation before control was applied relative to grid (theta = 0 means the robot is facing
         in +x direction)
-        :param X: forward/backward motion control
-        :param Z: anti-clockwise/clockwise motion control
+        :param x: forward/backward motion control
+        :param z: anti-clockwise/clockwise motion control
         :return: the control noise standard deviation matrix based on the control input
         """
-        if Z > 1e-40:
-            x_w1 = X*(np.sin(theta+Z*self.timeStep)-np.sin(theta))/Z
-            x_w2 = Z*(np.cos(theta+Z*self.timeStep)*self.timeStep-(np.sin(theta+Z*self.timeStep)-np.sin(theta))/Z)*X/Z
-            xdot_w1 = X*np.cos(theta)
-            y_w1 = X*(np.cos(theta)-np.cos(theta+Z*self.timeStep))/Z
-            y_w2 = Z*(np.sin(theta+Z*self.timeStep)*self.timeStep+(np.cos(theta+Z*self.timeStep)-np.cos(theta))/Z)*X/Z
-            ydot_w1 = X*np.sin(theta)
+        if z > 1e-40:
+            x_w1 = x*(np.sin(theta+z*self.time_step)-np.sin(theta))/z
+            x_w2 = z*(np.cos(theta+z*self.time_step)*self.time_step-(np.sin(theta+z*self.time_step)-np.sin(theta))/z)*x/z
+            x_dot_w1 = x*np.cos(theta)
+            y_w1 = x*(np.cos(theta)-np.cos(theta+z*self.time_step))/z
+            y_w2 = z*(np.sin(theta+z*self.time_step)*self.time_step+(np.cos(theta+z*self.time_step)-np.cos(theta))/z)*x/z
+            y_dot_w1 = x*np.sin(theta)
         else:
-            x_w1 = X*np.cos(theta)*self.timeStep
+            x_w1 = x*np.cos(theta)*self.time_step
             x_w2 = 0
-            xdot_w1 = X*np.cos(theta)
-            y_w1 = X*np.sin(theta)*self.timeStep
+            x_dot_w1 = x*np.cos(theta)
+            y_w1 = x*np.sin(theta)*self.time_step
             y_w2 = 0
-            ydot_w1 = X*np.sin(theta)
+            y_dot_w1 = x*np.sin(theta)
         L = np.array([[x_w1, x_w2, 0, 0],
-                      [xdot_w1, 0, 0, 0],
+                      [x_dot_w1, 0, 0, 0],
                       [y_w1, y_w2, 0, 0],
-                      [ydot_w1, 0, 0, 0]])
+                      [y_dot_w1, 0, 0, 0]])
 
-        Q = np.array([[self.stdDevX**2, 0, 0, 0],
-                      [0, self.stdDevZ**2, 0, 0],
+        Q = np.array([[self.std_dev_x**2, 0, 0, 0],
+                      [0, self.std_dev_z**2, 0, 0],
                       [0, 0, 0, 0],
                       [0, 0, 0, 0]])
         return np.dot(np.dot(L, Q), L.T)
 
-    def predict(self, pos, theta, X, Z):
+    def predict(self, pos, theta, x, z):
         """
         This method can be used to predict the robots position after dt seconds solely based on
         the controls. The control error increases when using this method as no correction is made.
@@ -66,56 +65,56 @@ class Kalman(object):
         :param pos: position vector [[x], [y]] before control was applied
         :param theta: orientation before control was applied relative to grid (theta = 0 means the robot is facing
         in +x direction)
-        :param X: forward/backward motion control
-        :param Z: anti-clockwise/clockwise motion control
+        :param x: forward/backward motion control
+        :param z: anti-clockwise/clockwise motion control
         :return: A prediction of the current position based on the control input and last position position
         """
-        if Z > 1e-40:
-            x_k_k1 = np.array([[pos[0]+(np.sin(theta+Z*self.timeStep)-np.sin(theta))*X/Z],
-                               [X*np.cos(theta)],
-                               [pos[1]+(np.cos(theta)-np.cos(theta+Z*self.timeStep))*X/Z],
-                               [X*np.sin(theta)]])  # predicted state
+        if z > 1e-40:
+            x_k_k1 = np.array([[pos[0]+(np.sin(theta+z*self.time_step)-np.sin(theta))*x/z],
+                               [x*np.cos(theta)],
+                               [pos[1]+(np.cos(theta)-np.cos(theta+z*self.time_step))*x/z],
+                               [x*np.sin(theta)]])  # predicted state
         else:
-            x_k_k1 = np.array([[pos[0]+X*np.cos(theta)*self.timeStep],
-                               [X*np.cos(theta)],
-                               [pos[1]+X*np.sin(theta)*self.timeStep],
-                               [X*np.sin(theta)]])  # predicted state
-        theta += Z*self.timeStep
-        self.Q += self.get_noise(theta, X, Z)
+            x_k_k1 = np.array([[pos[0]+x*np.cos(theta)*self.time_step],
+                               [x*np.cos(theta)],
+                               [pos[1]+x*np.sin(theta)*self.time_step],
+                               [x*np.sin(theta)]])  # predicted state
+        theta += z*self.time_step
+        self.Q += self.get_noise(theta, x, z)
         return x_k_k1, theta
 
-    def correct(self, pos, theta, pos_meas, X, Z):
+    def correct(self, pos, theta, pos_meas, x, z):
         """
 
         :param pos: position vector [[x], [y]] before control was applied
         :param theta: orientation before control was applied relative to grid (theta = 0 means the robot is facing
         in +x direction)
         :param pos_meas: measured position
-        :param X: forward/backward motion control
-        :param Z: anti-clockwise/clockwise motion control
+        :param x: forward/backward motion control
+        :param z: anti-clockwise/clockwise motion control
         :return: the (hopefully) best estimation of the state ([[x], [x_dot], [y], [y_dot]]) given the error in
         measurements and control
         """
-        if Z > 1e-40:
-            x_k_k1 = np.array([[pos[0]+(np.sin(theta+Z*self.timeStep)-np.sin(theta))*X/Z],
-                               [X*np.cos(theta)],
-                               [pos[1]+(np.cos(theta)-np.cos(theta+Z*self.timeStep))*X/Z],
-                               [X*np.sin(theta)]])  # predicted state
-            F = np.array([[1, np.sin(Z*self.timeStep)/Z, 0, (np.cos(Z*self.timeStep)-1)/Z],
+        if z > 1e-40:
+            x_k_k1 = np.array([[pos[0]+(np.sin(theta+z*self.time_step)-np.sin(theta))*x/z],
+                               [x*np.cos(theta)],
+                               [pos[1]+(np.cos(theta)-np.cos(theta+z*self.time_step))*x/z],
+                               [x*np.sin(theta)]])  # predicted state
+            F = np.array([[1, np.sin(z*self.time_step)/z, 0, (np.cos(z*self.time_step)-1)/z],
                           [0, 1, 0, 0],
-                          [0, (1-np.cos(Z*self.timeStep))/Z, 1, np.sin(Z*self.timeStep)/Z],
+                          [0, (1-np.cos(z*self.time_step))/z, 1, np.sin(z*self.time_step)/z],
                           [0, 0, 0, 1]])
         else:
-            x_k_k1 = np.array([[pos[0]+X*np.cos(theta)*self.timeStep],
-                               [X*np.cos(theta)],
-                               [pos[1]+X*np.sin(theta)*self.timeStep],
-                               [X*np.sin(theta)]])  # predicted state
-            F = np.array([[1, self.timeStep, 0, 0],
+            x_k_k1 = np.array([[pos[0]+x*np.cos(theta)*self.time_step],
+                               [x*np.cos(theta)],
+                               [pos[1]+x*np.sin(theta)*self.time_step],
+                               [x*np.sin(theta)]])  # predicted state
+            F = np.array([[1, self.time_step, 0, 0],
                           [0, 1, 0, 0],
-                          [0, 0, 1, self.timeStep],
+                          [0, 0, 1, self.time_step],
                           [0, 0, 0, 1]])
-        self.Q += self.get_noise(theta, X, Z)  # control noise standard deviation
-        R = self.stdMeas**2*np.array([[1, 0, 0, 0],
+        self.Q += self.get_noise(theta, x, z)  # control noise standard deviation
+        R = self.std_meas**2*np.array([[1, 0, 0, 0],
                                       [0, 1, 0, 0],
                                       [0, 0, 1, 0],
                                       [0, 0, 0, 1]])  # measurement noise standard deviation
@@ -133,24 +132,31 @@ class Kalman(object):
         K = np.dot(np.dot(p_k_k1, H.T), S)  # Kalman gain
         x_k_k = x_k_k1 + np.dot(K, y_k)  # current state
         self.p = np.dot(np.eye(4) - np.dot(K, H), p_k_k1)  # current covariance
-        theta += Z*self.timeStep
+        theta += z*self.time_step
         self.Q = np.zeros((4, 4))  # reset control noise after correction
         return x_k_k, theta
 
-    def setStdMeas(self, val):
-        self.stdMeas = val
+    def set_sigma_meas(self, val):
+        self.std_meas = val
 
-    def setStdX(self, val):
-        self.stdDevX = val
+    def set_sigma_x(self, val):
+        self.std_dev_x = val
 
-    def setStdZ(self, val):
-        self.stdDevZ = val
+    def set_sigma_z(self, val):
+        self.std_dev_z = val
 
-    def setTimeStep(self, val):
-        self.timeStep = val
+    def set_time_step(self, val):
+        self.time_step = val
 
-    def getTimeStep(self):
-        return self.timeStep
+    def get_time_step(self):
+        return self.time_step
 
-    def getStdMeas(self):
-        return self.stdMeas
+    def get_sigma_meas(self):
+        return self.std_meas
+
+    def get_sigma_x(self):
+        return self.std_dev_x
+
+    def get_sigma_z(self):
+        return self.std_dev_z
+
