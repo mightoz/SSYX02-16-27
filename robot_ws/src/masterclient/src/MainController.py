@@ -19,7 +19,7 @@ class MainController():
     def __init__(self, nbr_of_robots):
         #self.nodes = []  # Array containing pointers to instances of all the Nodes. Only needed fo align_robots_1
         nodes = []
-        for i in range (0, nbr_of_robots):
+        for i in range (0, nbr_of_robots-1):
             if i == 0:
                 nodes.append(Node.Node(i, "Base"))
             elif i == nbr_of_robots :

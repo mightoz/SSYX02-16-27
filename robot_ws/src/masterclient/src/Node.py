@@ -9,18 +9,21 @@ from rospy_tutorials.msg import Floats
 from geometry_msgs.msg import Twist
 # from robotclient.msg import *
 
+import Kalman
+import Controls
+
 from robotclient.srv import *
 
 
 # TODO - neighbors might be better if they were actual objects perhaps
 class Node(object):
-    def __init__(self, num, type):
+    def __init__(self, num, node_type):
 
-        if type == "Base":
+        if node_type == "Base":
             self.type = "Base"
             self.right_neighbor = num + 1
             self.left_neighbor = -1
-        elif type == "End":
+        elif node_type == "End":
             self.type = "End"
             self.right_neighbor = -1
             self.left_neighbor = num - 1
@@ -33,6 +36,60 @@ class Node(object):
         self.recorded_positions = np.array([], dtype=np.float32)
         self.recorded_x_positions = np.array([], dtype=np.float32)
         self.recorded_y_positions = np.array([], dtype=np.float32)
+
+        self.x = None
+        self.z = None
+        self.theta = None
+        self.pos = None
+
+        self.kalman = Kalman.Kalman(0.5, 0, 0, 0)
+        self.controls = Controls.Controls(0, 0, 0, 0, 0, 2, 2, 0)
+
+    def set_kalman(self, sigma_meas, sigma_x, sigma_z, dt):
+        self.kalman.set_sigma_meas(sigma_meas)
+        self.kalman.set_sigma_x(sigma_x)
+        self.kalman.set_sigma_z(sigma_z)
+        self.kalman.set_time_step(dt)
+
+    def set_controls(self, x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist):
+        self.controls.set_x_min(x_min)
+        self.controls.set_x_max(x_max)
+        self.controls.set_z_min(z_min)
+        self.controls.set_z_max(z_max)
+        self.controls.set_k(k)
+        self.controls.set_t_x(t_x)
+        self.controls.set_t_z(t_z)
+        self.controls.set_ok_dist(ok_dist)
+
+    def set_x(self, val):
+        self.x = val
+
+    def set_z(self, val):
+        self.z = val
+
+    def set_theta(self, val):
+        self.theta = val
+
+    def set_pos(self, val):
+        self.pos = val
+
+    def get_x(self):
+        return self.x
+
+    def get_z(self):
+        return self.z
+
+    def get_theta(self):
+        return self.theta
+
+    def get_pos(self):
+        return self.pos
+
+    def get_kalman(self):
+        return self.kalman
+
+    def get_controls(self):
+        return self.controls
 
     def measure_coordinates(self):
         tmp_pos = np.empty([], dtype=np.float32)
