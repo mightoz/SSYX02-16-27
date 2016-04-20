@@ -37,11 +37,11 @@ class Node(object):
         self.recorded_x_positions = np.array([], dtype=np.float32)
         self.recorded_y_positions = np.array([], dtype=np.float32)
 
-        self.x = 0 #temp for testing
-        self.z = 0 #temp for testing
-        self.theta = 0 #temp for testing
-        self.pos = np.array([0,0], dtype=np.float32) #temp for testing
-	self.__axlen = 0.43 
+        self.x = 0  # temp for testing
+        self.z = 0  # temp for testing
+        self.theta = 0  # temp for testing
+        self.pos = np.array([0, 0], dtype=np.float32)  # temp for testing
+        self.__axlen = 0.43
 
         self.kalman = Kalman.Kalman(0.5, 0, 0, 0)
         self.controls = Controls.Controls(0, 0, 0, 0, 0, 2, 2, 0)
@@ -96,7 +96,7 @@ class Node(object):
         return self.controls
 
     def measure_coordinates(self):
-	#Perhaps not empty, returns weirds
+        # Perhaps not empty, returns weirds
         tmp_pos = np.empty([], dtype=np.float32)
         if (self.type == "Robot"):
             srv = 'get_coord' + str(self.node)
