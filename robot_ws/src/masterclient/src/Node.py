@@ -98,7 +98,7 @@ class Node(object):
     def measure_coordinates(self):
         # Perhaps not empty, returns weirds
         tmp_pos = np.empty([], dtype=np.float32)
-        if self.type == "Base" || self.type == "End":
+        if ((self.type == "Base") or (self.type == "End")):
             tmp_pos = self.pos
         else :
             srv = 'get_coord' + str(self.node)
@@ -151,7 +151,7 @@ class Node(object):
 
     def update_twist(self):
         if self.type != "Robot":
-            print "Cannot publish twist messages to"str(self.type)
+            print "Cannot publish twist messages to", str(self.type)
         else:
             srv = '/updateTwist' + str(self.node)
             rospy.wait_for_service(srv)

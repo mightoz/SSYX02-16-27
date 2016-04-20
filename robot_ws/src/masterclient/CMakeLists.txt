@@ -57,6 +57,7 @@ add_service_files(
 #   robotclient.MoveRobot.srv
 #   robotclient.RotateRobot.srv
 #   robotclient.GetCoord.srv
+    BaseEndGetCoord.srv
     GetCoord.srv
  )
 

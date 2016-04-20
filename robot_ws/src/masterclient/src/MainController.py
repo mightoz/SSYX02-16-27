@@ -4,9 +4,11 @@
 import rospy
 
 from rospy.numpy_msg import numpy_msg
-from rospy_tutorials.msg import Floats
+#from rospy_tutorials.msg import Floats
+from masterclient.msg import Floats
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
+
 
 import numpy as np
 import math
@@ -14,12 +16,39 @@ import matplotlib.pyplot as plt
 import Node
 
 from robotclient.srv import *
-
+from masterclient.srv import *
+from masterclient.msg import *
 
 class MainController():
+
+############################################################################################################
+
+    def handle_get_base(self, req):
+	#f = Floats()
+	self.f = np.array([], dtype=np.float32)  # temp for testing                
+	f = req
+        basepos = f.data#.data
+	self.nodes[0].set_pos(basepos)
+	print basepos
+        return BaseEndGetCoordResponse(1)
+
+    def handle_get_end(self, req):
+	#f = Floats()
+	self.f = np.array([], dtype=np.float32)  # temp for testing        
+	f = req
+        endpos = f.data#.data
+	self.nodes[self.nbr_of_nodes-1].set_pos(endpos) 
+	print endpos       
+        return BaseEndGetCoordResponse(1)
+
+##################################################################################################################
+
     def __init__(self, nbr_of_nodes):
         rospy.init_node('robot_coordinator')
-        rospy.Subscriber("iterator", String, self.align_robots)
+        rospy.Subscriber("iterator", String, self.align_robots)	
+	s = rospy.Service('get_coordEnd', BaseEndGetCoord, self.handle_get_end)
+	s = rospy.Service('get_coordBase', BaseEndGetCoord, self.handle_get_base)
+    
         # Why is this necessary? it terminates fine as it is.
         # rospy.Subscriber("terminator", None, self.terminate)
 
@@ -129,6 +158,7 @@ class MainController():
         plt.axis([-2, 3.5, -3, 3.5])
         plt.show()
 
+   
     ############################################################################################################
 
 
