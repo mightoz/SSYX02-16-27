@@ -11,4 +11,6 @@
     (:file "_package_MoveRobot" :depends-on ("_package"))
     (:file "GetCoord" :depends-on ("_package_GetCoord"))
     (:file "_package_GetCoord" :depends-on ("_package"))
+    (:file "UpdateTwist" :depends-on ("_package_UpdateTwist"))
+    (:file "_package_UpdateTwist" :depends-on ("_package"))
   ))

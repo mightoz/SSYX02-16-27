@@ -87,7 +87,8 @@ class MainController():
         if (data.data == "align1"):
             self.align_robots_1()
         elif (data.data == "align2"):
-            self.align_robots_2()
+            print "reached here"
+	    #self.align_robots_2()
         self.calls += 1
 
     def align_robots_1(self):

@@ -37,7 +37,7 @@ class MainController():
 	self.f = np.array([], dtype=np.float32)  # temp for testing        
 	f = req
         endpos = f.data#.data
-	self.nodes[self.nbr_of_nodes].set_pos(endpos) 
+	self.nodes[self.nbr_of_nodes-1].set_pos(endpos) 
 	print endpos       
         return BaseEndGetCoordResponse(1)
 
@@ -87,8 +87,10 @@ class MainController():
         if (data.data == "align1"):
             self.align_robots_1()
         elif (data.data == "align2"):
-            self.align_robots_2()
+            print "reached here"
+	    #self.align_robots_2()
         self.calls += 1
+	print (end-start)
 
     def align_robots_1(self):
         # Choose number of self.nodes
