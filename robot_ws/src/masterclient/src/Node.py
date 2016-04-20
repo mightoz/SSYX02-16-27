@@ -149,7 +149,7 @@ class Node(object):
         except rospy.ServiceException as exc:
             print("Service did not process request: " + str(exc))
 
-    def update_twist(self, x, z):
+    def update_twist(self):
         if self.type != "Robot":
             print "Cannot publish twist messages to"str(self.type)
         else:
@@ -157,8 +157,6 @@ class Node(object):
             rospy.wait_for_service(srv)
             update_twist = rospy.Serviceproxy(srv, UpdateTwist)
             try:
-                a = update_twist(x,z)
-                self.x = x
-                self.z = z
+                a = update_twist(self.x,self.z)
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))

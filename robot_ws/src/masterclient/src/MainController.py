@@ -110,8 +110,7 @@ class MainController():
                                                                 self.nodes[i].get_axlen())
             self.nodes[i].set_x(x3)
             self.nodes[i].set_z(v3)
-
-        # JUSTGOO - HOW DO WE MOVE ROBOT?!?!?!
+            self.nodes[i].update_twist()
 
     def terminator(self):
         # For printing, colors hardcoded
