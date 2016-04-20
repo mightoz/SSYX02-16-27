@@ -37,10 +37,11 @@ class Node(object):
         self.recorded_x_positions = np.array([], dtype=np.float32)
         self.recorded_y_positions = np.array([], dtype=np.float32)
 
-        self.x = None
-        self.z = None
-        self.theta = None
-        self.pos = None
+        self.x = 0  # temp for testing
+        self.z = 0  # temp for testing
+        self.theta = 0  # temp for testing
+        self.pos = np.array([0, 0], dtype=np.float32)  # temp for testing
+        self.__axlen = 0.43
 
         self.kalman = Kalman.Kalman(0.5, 0, 0, 0)
         self.controls = Controls.Controls(0, 0, 0, 0, 0, 2, 2, 0)
@@ -82,6 +83,9 @@ class Node(object):
     def get_theta(self):
         return self.theta
 
+    def get_axlen(self):
+        return self.__axlen
+
     def get_pos(self):
         return self.pos
 
@@ -92,8 +96,11 @@ class Node(object):
         return self.controls
 
     def measure_coordinates(self):
+        # Perhaps not empty, returns weirds
         tmp_pos = np.empty([], dtype=np.float32)
-        if (self.type == "Robot"):
+        if self.type == "Base" || self.type == "End":
+            tmp_pos = self.pos
+        else :
             srv = 'get_coord' + str(self.node)
             rospy.wait_for_service(srv)
             get_coords = rospy.ServiceProxy(srv, GetCoord)
@@ -106,10 +113,6 @@ class Node(object):
                 self.recorded_y_positions = np.append(self.recorded_y_positions, tmp_pos[1])
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))
-        elif (self.type == "Base"):
-            tmp_pos = np.array([0, 3], dtype=np.float32)
-        elif (self.type == "End"):
-            tmp_pos = np.array([0, -2], dtype=np.float32)
         return tmp_pos
 
     def get_recorded_positions(self):
@@ -145,3 +148,15 @@ class Node(object):
             x = mv_robot(angle)
         except rospy.ServiceException as exc:
             print("Service did not process request: " + str(exc))
+
+    def update_twist(self):
+        if self.type != "Robot":
+            print "Cannot publish twist messages to"str(self.type)
+        else:
+            srv = '/updateTwist' + str(self.node)
+            rospy.wait_for_service(srv)
+            update_twist = rospy.Serviceproxy(srv, UpdateTwist)
+            try:
+                a = update_twist(self.x,self.z)
+            except rospy.ServiceException as exc:
+                print("Service did not process request: " + str(exc))

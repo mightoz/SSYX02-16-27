@@ -10,6 +10,7 @@ class Robot(object):
         self.ang_vel = z
         self.orientation = theta
         self.curr_pos = pos
+        self.__wheel_dist = 0.43
         self.kalman = Kalman.Kalman(0.5, 0, 0, 0)
         self.controls = Controls.Controls(0, 0, 0, 0, 0, 2, 2, 0)
 
@@ -58,3 +59,6 @@ class Robot(object):
 
     def get_controls(self):
         return self.controls
+
+    def get___wheel_dist(self):
+        return self.__wheel_dist

@@ -6,6 +6,7 @@ import rospy
 from rospy.numpy_msg import numpy_msg
 from rospy_tutorials.msg import Floats
 from geometry_msgs.msg import Twist
+from std_msgs.msg import String
 
 import numpy as np
 import math
@@ -18,67 +19,117 @@ from robotclient.srv import *
 class MainController():
     def __init__(self, nbr_of_nodes):
         rospy.init_node('robot_coordinator')
-        rospy.Subscriber("iterator", None, self.align_robots_2)
-        rospy.Subscriber("terminator", None, self.terminate)
+        rospy.Subscriber("iterator", String, self.align_robots)
+        # Why is this necessary? it terminates fine as it is.
+        # rospy.Subscriber("terminator", None, self.terminate)
 
-        nodes = []
-        for i in range (0, nbr_of_nodes-1):
+        # Some inital values for kalman and controls
+        x_max = 1  # Maximum speed forwards
+        x_min = 0.05  # Minimm speed forwards
+        z_max = 1  # Maximum rotation speed, absolute value
+        z_min = 0  # Minimum rotation speed, absolute value
+        sigma_x = 0.05  # Standard deviation for speed, percentage
+        sigma_z = 0.025  # Standard deviation for rotation, percentage
+        sigma_meas = 0.05  # Standard deviation for UWB measurements, NOT percentage
+        dt = 0.5  # Timesteps for loop, used in kalmanpredict
+        k = 0.25  # Gradient step
+        t_x = 2  # Speed factor forward, lower factor = higher speed, !=0
+        t_z = 2  # Speed factor rotation, -||-  !=0
+        ok_dist = 0.05  # Minimum distance to next targetpos, k affects this
+
+        self.nbr_of_nodes = nbr_of_nodes
+        self.nodes = []
+        for i in range(0, self.nbr_of_nodes):
             if i == 0:
-                nodes.append(Node.Node(i, "Base"))
-            elif i == nbr_of_nodes-1 :
-                nodes.append(Node.Node(i, "End"))
-            else :
-                nodes.append(Node.Node(i, "Robot"))
+                self.nodes += [Node.Node(i, "Base")]
+            elif i == self.nbr_of_nodes - 1:
+                self.nodes += [Node.Node(i, "End")]
+            else:
+                self.nodes += [Node.Node(i, "Robot")]
+                self.nodes[i].set_kalman(sigma_meas, sigma_x, sigma_z, dt)
+                self.nodes[i].set_controls(x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist)
 
+        self.calls = 0  # Increase after every iteration
+        rospy.spin()
+        rospy.on_shutdown(self.terminator)
 
-        self.calls = 0
-
-        rospy.spin
+    def align_robots(self, data):
+        # Add update Base/End position?
+        if (data.data == "align1"):
+            self.align_robots_1()
+        elif (data.data == "align2"):
+            self.align_robots_2()
+        self.calls += 1
 
     def align_robots_1(self):
         # Choose number of self.nodes
-        number_of_nodes = 4
+        """number_of_nodes = 4
         for i in range(0, number_of_nodes):
             self.nodes.append(Node.Node(i))  # create instances of all the Nodes
         else:
-            pass
+            pass"""
 
         # Set while condition too True.
         not_finished = True
-        while (not_finished):
-            # Loop through all of the robots
-            for i in range(1, number_of_nodes - 1):
-                # nextPosition = np.array([], dtype=np.float32)
-                # Calulate correctposition for robot
+        # while (not_finished):
+        # Loop through all of the robots
+        for i in range(1, self.nbr_of_nodes - 1):
+            # Calulate correctposition for robot
+            print i
+            possible_next_position = self.correct_pos(self.nodes[i])
+            print possible_next_position
+            # Check if position is within a radius of 0.1m of possible_next_position
+            if (np.linalg.norm(self.nodes[i].measure_coordinates() - possible_next_position) > 0.1):
+                print "Tries to move"
+                self.move_a_to_b(self.nodes[i], possible_next_position)  # Otherwise move
+                # TODO: ONLY CHECK AND THEN MOVE.
 
-                possible_next_position = self.correct_pos(self.nodes[i])
-                print possible_next_position
-                # Check if position is within a radius of 0.1m of possible_next_position
-                if (np.linalg.norm(self.nodes[i].measure_coordinates() - possible_next_position) > 0.1):
-                    print "Tries to move"
-                    self.move_a_to_b(self.nodes[i], possible_next_position)  # Otherwise move
-                    # TODO: ONLY CHECK AND THEN MOVE.
+    def align_robots_2(self):
+        print "mainfunciton"
+        corr_idx = np.mod(self.calls, self.nbr_of_nodes - 2)  # Decide which robot should correct its position
+        for i in range(1, self.nbr_of_nodes - 1):  # Calculate/Estimate new state
+            if i != corr_idx:
+                x2, v2 = self.nodes[i].get_kalman().predict(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
+                                                            self.nodes[i].get_x(), self.nodes[i].get_z())
+                self.nodes[i].set_theta(v2)
+                self.nodes[i].set_pos(np.array([x2[0, 0], x2[2, 0]]))
             else:
-                pass
-                # For printing
+                # We should have a method call that measures the robot's position here
+                # meas_pos = 2*np.random.rand(2)-1
+                meas_pos = self.nodes[i].measure_coordinates()
+                x2, v2 = self.nodes[i].get_kalman().correct(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
+                                                            meas_pos, self.nodes[i].get_x(), self.nodes[i].get_z())
+                self.nodes[i].set_theta(v2)
+                self.nodes[i].set_pos(np.array([x2[0, 0], x2[2, 0]]))
+
+        for i in range(1, self.nbr_of_nodes - 1):  # Calculate new controls at time k
+            x3, v3 = self.nodes[i].get_controls().calc_controls(self.nodes[i].get_theta(), self.nodes[i].get_pos(),
+                                                                self.nodes[self.nodes[i].get_left_neighbor()].get_pos(),
+                                                                self.nodes[
+                                                                    self.nodes[i].get_right_neighbor()].get_pos(),
+                                                                self.nodes[i].get_axlen())
+            self.nodes[i].set_x(x3)
+            self.nodes[i].set_z(v3)
+            self.nodes[i].update_twist()
+
+    def terminator(self):
+        # For printing, colors hardcoded
         colors = ['gx', 'ro', 'bo', 'gx']
-        for i in (0, number_of_nodes):
-            print "Recorded positions for Node %s are %s" % (self.nodes[i], self.nodes[i].get_recorded_positions())
-            print "Recorded X positions for Node %s are %s" % (self.nodes[i], self.nodes[i].getRecordedXPositions())
-            print "Recorded Y positions for Node %s are %s" % (self.nodes[i], self.nodes[i].getRecordedYPositions())
-            plt.plot(self.nodes[i].getRecordedXPositions(), self.nodes[i].getRecordedYPositions(), colors[i])
+        for i in range(0, self.nbr_of_nodes):
+            # print "Recorded positions for Node %s are %s" % (self.nodes[i], self.nodes[i].get_recorded_positions())
+            # print "Recorded X positions for Node %s are %s" % (self.nodes[i], self.nodes[i].get_recorded_x_positions())
+            # print "Recorded Y positions for Node %s are %s" % (self.nodes[i], self.nodes[i].get_recorded_y_positions())
+            plt.plot(self.nodes[i].get_recorded_x_positions(), self.nodes[i].get_recorded_y_positions(), colors[i])
         else:
             pass
+        # Hardcoded positions of RCM?
         plt.plot(2, 0, 'kx')
         plt.plot(1, -2, 'kx')
         plt.plot(-1, 1, 'kx')
         plt.axis([-2, 3.5, -3, 3.5])
         plt.show()
 
-    def align_robots_2(self):
-        self.calls += 1
-
-    def terminate(self):
+    ############################################################################################################
 
 
 
@@ -87,6 +138,8 @@ class MainController():
         correct_position = np.array([], dtype=np.float32)
         left = robot.get_left_neighbor()
         right = robot.get_right_neighbor()
+        print left
+        print right
         correct_position = (self.nodes[left].measure_coordinates() + self.nodes[
             right].measure_coordinates()) / 2  # Calculates correct position
         return correct_position
@@ -146,7 +199,7 @@ class MainController():
         return direction*theta
         """
         dot_prod = (current[0] - previous[0]) * (target[0] - previous[0]) + (current[1] - previous[1]) * (
-        target[1] - previous[1])
+            target[1] - previous[1])
         lengthA = math.sqrt(math.pow((current[0] - previous[0]), 2) + math.pow((current[1] - previous[1]), 2))
         lengthB = math.sqrt(math.pow((target[0] - previous[0]), 2) + math.pow((target[1] - previous[1]), 2))
 
@@ -165,6 +218,6 @@ if __name__ == '__main__':
     # print rospy.get_caller_id()
 
     try:
-        ne = MainController()
+        ne = MainController(4)
     except rospy.ROSInterruptException:
         pass

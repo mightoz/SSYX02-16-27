@@ -160,20 +160,21 @@ class Controls(object):
             z = phi / t * za * direction
         return z
 
-    def calc_controls(self, theta, curr_pos, neighbour_1_pos, neighbour_2_pos):
+    def calc_controls(self, theta, curr_pos, neighbour_1_pos, neighbour_2_pos, wheel_dist):
         """
 
         :param theta: orientation relative to the x-axis in the coordinate grid. positive ccw
         :param curr_pos: current position
         :param neighbour_1_pos: position of neighbour 1
         :param neighbour_2_pos: position of neighbour 2. if only 1 neighbour exist, set it to 0
+        :param wheel_dist: distance between the front wheels
         :return: the next controls; X, Z
         """
 
         tar_pos = self.find_next_pos(curr_pos, neighbour_1_pos, neighbour_2_pos)
         next_z = get_rot_dir(theta, curr_pos, tar_pos) * self.get_rot_magn_1(theta, curr_pos, tar_pos)
         next_x = self.get_trans_magn_1(curr_pos, tar_pos, np.abs(next_z * self.t_z))
-        return next_x, next_z
+        return next_x-wheel_dist*next_z/2, next_z
 
     def set_x_max(self, val):
         self.x_max = val
