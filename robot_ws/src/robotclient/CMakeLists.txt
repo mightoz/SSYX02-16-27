@@ -56,6 +56,7 @@ add_message_files(
     MoveRobot.srv
     RotateRobot.srv
     GetCoord.srv
+    UpdateTwist.srv
  )
 
 ## Generate actions in the 'action' folder

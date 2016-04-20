@@ -59,6 +59,7 @@ add_service_files(
 #   robotclient.GetCoord.srv
     BaseEndGetCoord.srv
     GetCoord.srv
+
  )
 
 ## Generate actions in the 'action' folder
