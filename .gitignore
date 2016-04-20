@@ -7,8 +7,8 @@ __pycache__/
 *.so
 
 # ROS
-/install/
-/devel/
+install/
+devel/
 # Distribution / packaging
 .Python
 env/
