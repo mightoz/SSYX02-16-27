@@ -77,7 +77,50 @@ class MainController():
                 self.nodes += [Node.Node(i, "Robot")]
                 self.nodes[i].set_kalman(sigma_meas, sigma_x, sigma_z, dt)
                 self.nodes[i].set_controls(x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist)
+	
+	#Init for robot orientation and position
+	for i in range(1, self.nbr_of_nodes-1):
+	    first_pos = np.empty([], dtype=np.float32)
+	    second_pos = np.empty([], dtype=np.float32)
+	    srv = 'get_coord' + str(i)
+            rospy.wait_for_service(srv)
+            get_coords = rospy.ServiceProxy(srv, GetCoord)
+            try:
+                f = Floats()
+                f = get_coords(1)
+                first_pos = f.data.data
+	    except rospy.ServiceException as exc:
+                print("Service did not process request: " + str(exc))
+       	    
+            srv = '/moveRobot' + str(i)
+            rospy.wait_for_service(srv)
+            mv_robot = rospy.ServiceProxy(srv, MoveRobot)
+            try:
+                x = mv_robot(0.2)
+            except rospy.ServiceException as exc:
+                print("Service did not process request: " + str(exc))
+            srv = 'get_coord' + str(i)
+            rospy.wait_for_service(srv)
+            get_coords = rospy.ServiceProxy(srv, GetCoord)
 
+            try:
+                f = Floats()
+                f = get_coords(1)
+                second_pos = f.data.data
+            except rospy.ServiceException as exc:
+                print("Service did not process request: " + str(exc))
+       	    
+            Nodes[i].set_pos(second_pos)
+	    A = second_pos - first_pos
+	    B = np.array([1,0], dtype=np.float32)
+	    if np.linalg.norm(A) >1e-40:
+	        phi = np.arccos(np.dot(A,B)/(np.linalg.norm(A)*np.linalg.norm(B)))
+	    if second_pos[1]>=first_pos[1]:
+	        Nodes[i].set_theta(phi)
+	    else:
+	        Nodes[i].set_theta(2*np.pi-phi)
+
+	#End of initation
         self.calls = 0  # Increase after every iteration
         rospy.spin()
         rospy.on_shutdown(self.terminator)
@@ -90,7 +133,6 @@ class MainController():
             print "reached here"
 	    #self.align_robots_2()
         self.calls += 1
-	print (end-start)
 
     def align_robots_1(self):
         # Choose number of self.nodes
