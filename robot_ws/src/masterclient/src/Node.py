@@ -98,7 +98,9 @@ class Node(object):
     def measure_coordinates(self):
         # Perhaps not empty, returns weirds
         tmp_pos = np.empty([], dtype=np.float32)
-        if (self.type == "Robot"):
+        if self.type == "Base" || self.type == "End":
+            tmp_pos = self.pos
+        else :
             srv = 'get_coord' + str(self.node)
             rospy.wait_for_service(srv)
             get_coords = rospy.ServiceProxy(srv, GetCoord)
@@ -111,10 +113,6 @@ class Node(object):
                 self.recorded_y_positions = np.append(self.recorded_y_positions, tmp_pos[1])
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))
-        elif (self.type == "Base"):
-            tmp_pos = np.array([0, 3], dtype=np.float32)
-        elif (self.type == "End"):
-            tmp_pos = np.array([0, -2], dtype=np.float32)
         return tmp_pos
 
     def get_recorded_positions(self):
