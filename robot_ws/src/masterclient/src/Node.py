@@ -102,7 +102,7 @@ class Node(object):
         tmp_pos = np.empty([], dtype=np.float32)
         if ((self.type == "Base") or (self.type == "End")):
             tmp_pos = self.pos
-        else :
+        else:
             srv = 'get_coord' + str(self.node)
             rospy.wait_for_service(srv)
             get_coords = rospy.ServiceProxy(srv, GetCoord)
