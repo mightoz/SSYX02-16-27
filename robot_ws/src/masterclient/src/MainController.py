@@ -53,15 +53,15 @@ class MainController():
         # rospy.Subscriber("terminator", None, self.terminate)
 
         # Some inital values for kalman and controls
-        x_max = 0.01  # Maximum speed forwards
+        x_max = 0.075  # Maximum speed forwards
         x_min = 0  # Minimm speed forwards
-        z_max = 1  # Maximum rotation speed, absolute value
+        z_max = 0.15  # Maximum rotation speed, absolute value
         z_min = 0  # Minimum rotation speed, absolute value
         sigma_x = 0.05  # Standard deviation for speed, percentage
         sigma_z = 0.025  # Standard deviation for rotation, percentage
         sigma_meas = 0.05  # Standard deviation for UWB measurements, NOT percentage
         dt = 0.5  # Timesteps for loop, used in kalmanpredict
-        k = 0.25  # Gradient step
+        k = 0.15  # Gradient step
         t_x = 2  # Speed factor forward, lower factor = higher speed, !=0
         t_z = 2  # Speed factor rotation, -||-  !=0
         ok_dist = 0.05  # Minimum distance to next targetpos, k affects this
@@ -123,22 +123,28 @@ class MainController():
 	    else:
 	        self.nodes[i].set_theta(2*np.pi-phi)
 	#End of initation
-	fakeend = np.array([0,2], dtype=np.float32)
+	fakeend = np.array([0,-2], dtype=np.float32)
 	fakebase = np.array([0,3], dtype=np.float32)
 	self.nodes[0].set_pos(fakeend)
 	self.nodes[3].set_pos(fakebase)
-	rospy.Subscriber("iterator", String, self.align_robots)	
-        #self.calls = 0  # Increase after every iteration
+	print "base:", self.nodes[0].get_pos()
+	print "end:", self.nodes[3].get_pos()
+	#rospy.Subscriber("iterator", String, self.align_robots)	
+        service = rospy.Service('iterator', Iterator, self.align_robots)
+	#self.calls = 0  # Increase after every iteration
         rospy.spin()
         rospy.on_shutdown(self.terminator)
 
     def align_robots(self, data):
         # Add update Base/End position?
-        if (data.data == "align1"):
+	print self.calls
+	print data.data.data
+        if (data.data.data == "align1"):
             self.align_robots_1()
-        elif (data.data == "align2"):
+        elif (data.data.data == "align2"):
 	    self.align_robots_2()
         self.calls = self.calls + 1
+	return IteratorResponse(1)
 
     def align_robots_1(self):
         # Choose number of self.nodes
@@ -166,7 +172,6 @@ class MainController():
     def align_robots_2(self):
         print "mainfunciton"
         corr_idx = 1+ np.mod(self.calls, self.nbr_of_nodes - 2)  # Decide which robot should correct its position
-	print "ttttthis should correct" , corr_idx
         for i in range(1, self.nbr_of_nodes - 1):  # Calculate/Estimate new state
 	    if i != corr_idx:
                 x2, v2 = self.nodes[i].get_kalman().predict(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
@@ -177,6 +182,7 @@ class MainController():
             else:
                 # We should have a method call that measures the robot's position here
                 # meas_pos = 2*np.random.rand(2)-1
+		meas_pos = np.array([], dtype=np.float32)
                 meas_pos = self.nodes[i].measure_coordinates()
 		print "this was meas_pos", meas_pos
                 x2, v2 = self.nodes[i].get_kalman().correct(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
@@ -184,6 +190,8 @@ class MainController():
                 self.nodes[i].set_theta(v2)
                 self.nodes[i].set_pos(np.array([x2[0, 0], x2[2, 0]]))
 		print "Robot %s corrects" % i
+
+
         for i in range(1, self.nbr_of_nodes - 1):  # Calculate new controls at time k
             x3, v3 = self.nodes[i].get_controls().calc_controls(self.nodes[i].get_theta(), self.nodes[i].get_pos(),
                                                                 self.nodes[self.nodes[i].get_left_neighbor()].get_pos(),

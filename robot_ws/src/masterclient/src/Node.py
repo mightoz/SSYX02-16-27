@@ -14,6 +14,8 @@ import Controls
 
 from robotclient.srv import *
 
+rate = 0
+
 
 # TODO - neighbors might be better if they were actual objects perhaps
 class Node(object):
@@ -104,6 +106,9 @@ class Node(object):
             srv = 'get_coord' + str(self.node)
             rospy.wait_for_service(srv)
             get_coords = rospy.ServiceProxy(srv, GetCoord)
+	    global rate
+	    rate = rate + 1
+            print "This is measure ", rate
             try:
                 f = Floats()
                 f = get_coords(1)
