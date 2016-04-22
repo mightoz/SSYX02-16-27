@@ -1,44 +1,47 @@
 #!/usr/bin/env python
 PKG = 'numpy'
-import rcmSendRangeRequest
+import RCMSendRangeRequest
+import numpy as np
 
 
-def measRange(s, reqIp, respId, doPrint):
+def meas_range(s, requester_ip, responder_id, do_print):
     """
 
     :param s: The socket that is used to communicate between computer and RCM through a wired connection
-    :param reqIp: The ip of the RCM that is connected via an ethernet cable.
-    :param respId: The id of the node which distance to the RCM is sought.
-    :param doPrint: Not used at this moment. In the future this variable may be used to decide whether or not some
+    :param requester_ip: The ip of the RCM that is connected via an ethernet cable.
+    :param responder_id: The id of the node which distance to the RCM is sought.
+    :param do_print: Not used at this moment. In the future this variable may be used to decide whether or not some
     technical information about the measuring process should be printed
     :return: The measured range between the node and the robot.
     """
-    msgId = 0
+    msg_id = 0
     attempt = 0
     success = 0
-    calcRange = 0
+    calc_range = 0
     while success < 1:
-        msgId = (msgId + 1) % (0xffff+1)  # contains information about how many times the range have been requested.
+        msg_id = (msg_id + 1) % (0xffff+1)  # contains information about how many times the range have been requested.
         # checks if the RCM is ready to transmit the measured range.
-        status, msgIdCfrm = rcmSendRangeRequest.reqRange(s, reqIp, msgId, respId)
+        status, msg_id_confirm = RCMSendRangeRequest.req_range(s, requester_ip, msg_id, responder_id)
         attempt += 1
         if status[0] == 0:
             # receive information about the measured range and if it was successful.
-            rangeInfoStatus, rangeInfoFre = rcmSendRangeRequest.rcmMinimalRangeinfo(s)
-            if rangeInfoStatus[0] == 0:  # successful measurement
+            range_info_status, range_info_fre = RCMSendRangeRequest.rcm_minimal_range_info(s)
+            if range_info_status[0] == 0:  # successful measurement
                 success = 1
-                calcRange = rangeInfoFre[0]/1000
-            elif rangeInfoStatus[0] == 1:
+                calc_range = range_info_fre[0]/1000
+            elif range_info_status[0] == 1:
                 print 'range timeout\n'
-            elif rangeInfoStatus[0] == 2:
+            elif range_info_status[0] == 2:
                 print 'LED failure\n'
-            elif rangeInfoStatus[0] == 9:
+            elif range_info_status[0] == 9:
                 print 'UDP failure on InfoReceive\n'
             else:
                 print 'UDP failure on InfoReceive\n'
 
         if attempt > 10:
             print 'Error in measuring range'
+            success = 1
+            calc_range = np.array([0, 0], dtype=np.uint32)
 
-    return calcRange
+    return calc_range
 
