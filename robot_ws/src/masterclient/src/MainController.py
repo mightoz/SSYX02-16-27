@@ -24,21 +24,19 @@ class MainController():
 ############################################################################################################
 
     def handle_get_base(self, req):
-        #f = Floats()
-        self.f = np.array([], dtype=np.float32)  # temp for testing                
-        f = req
-        basepos = f.data#.data
-        self.nodes[0].set_pos(basepos)
-        print basepos
+        #f = Floats()              
+        basepos = req.data
+        f = np.array([basepos[0], basepos[1]], dtype=np.float32)  # temp for testing  
+        self.nodes[0].set_pos(f)
+        print f
         return BaseEndGetCoordResponse(1)
 
     def handle_get_end(self, req):
         #f = Floats()
-        self.f = np.array([], dtype=np.float32)  # temp for testing        
-        f = req
-        endpos = f.data#.data
-        self.nodes[self.nbr_of_nodes-1].set_pos(endpos) 
-        print endpos       
+        endpos = req.data
+        f = np.array([endpos[0], endpos[1]], dtype=np.float32)  # temp for testing  
+        self.nodes[self.nbr_of_nodes-1].set_pos(f) 
+        print f       
         return BaseEndGetCoordResponse(1)
 
 ##################################################################################################################
