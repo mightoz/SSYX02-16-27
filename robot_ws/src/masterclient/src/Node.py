@@ -49,9 +49,9 @@ class Node(object):
         self.controls = Controls.Controls(0, 0, 0, 0, 0, 2, 2, 0)
 
     def set_kalman(self, sigma_meas, sigma_x, sigma_z, dt):
-        self.kalman.set_sigma_meas(sigma_meas)
         self.kalman.set_sigma_x(sigma_x)
         self.kalman.set_sigma_z(sigma_z)
+        self.kalman.set_sigma_meas(sigma_meas)
         self.kalman.set_time_step(dt)
 
     def set_controls(self, x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist):

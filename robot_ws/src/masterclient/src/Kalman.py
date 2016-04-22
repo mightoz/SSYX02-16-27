@@ -4,37 +4,11 @@ import numpy as np
 class Kalman(object):
 
     def __init__(self):
-        self.p = None
-        self.q = None
+        self.p = 0.1*np.eye(4)
+        self.q = np.zeros((4, 4))
         self.std_meas = None
         self.std_dev_x = None
         self.std_dev_z = None
-        pass
-
-    def initiate(self, sigma_meas, sigma_x, sigma_z, time_step):
-        """
-
-        :param sigma_meas: standard deviation of measurement noise. sqrt(2) times the gauss radius
-        (where the function has decreased by a factor exp(-1)) of the control
-        :param sigma_x: standard deviation of translational noise relative to 1 (m/s for example). sqrt(2) times
-        the gauss radius (where the function has decreased by a factor exp(-1)) of the control
-        :param sigma_z: standard deviation of rotational noise relative to 1 (rad/s for example). sqrt(2) times
-        the gauss radius (where the function has decreased by a factor exp(-1)) of the control
-        :param time_step: time to execute controls during
-        """
-        self.p = 0.1*np.eye(4)
-        self.q = np.zeros((4, 4))
-        self.std_meas = np.abs(sigma_meas)
-        self.std_dev_x = np.abs(sigma_x)
-        self.std_dev_z = np.abs(sigma_z)
-        if self.std_meas < 1e-40:
-            self.std_meas = 1e-40
-        if self.std_dev_x < 1e-40:
-            self.std_dev_x = 1e-40
-        if self.std_dev_z < 1e-40:
-            self.std_dev_z = 1e-40
-        for i in range(0, 30):
-            self.correct(np.array([0, 0]), 0, np.random.normal(0, self.std_meas, 2), 0, 1, time_step)
 
     def get_noise(self, theta, x, z, time_step):
         """
@@ -158,28 +132,61 @@ class Kalman(object):
         return x_k_k, theta
 
     def set_sigma_meas(self, val):
+        """
+
+        :param val: standard deviation of measurement noise. sqrt(2) times the gauss radius
+        (where the function has decreased by a factor exp(-1)) of the control
+        :return:
+        """
         if self.std_meas > 1e-40:
             self.std_meas = val
         else:
             self.std_meas = 1e-40
+        if self.std_dev_x is not None and self.std_dev_z is not None:
+            for i in range(0, 30):
+                self.correct(np.array([0, 0]), 0, np.random.normal(0, self.std_meas, 2), 0, 1, 0.5)
 
     def set_sigma_x(self, val):
+        """
+
+        :param val: standard deviation of translational noise relative to 1 (m/s for example). sqrt(2) times
+        the gauss radius (where the function has decreased by a factor exp(-1)) of the control
+        :return:
+        """
         if self.std_dev_x > 1e-40:
             self.std_dev_x = val
         else:
             self.std_dev_x = 1e-40
 
     def set_sigma_z(self, val):
+        """
+
+        :param val: standard deviation of rotational noise relative to 1 (rad/s for example). sqrt(2) times
+        the gauss radius (where the function has decreased by a factor exp(-1)) of the control
+        :return:
+        """
         if self.std_dev_z > 1e-40:
             self.std_dev_z = val
         else:
             self.std_dev_z = 1e-40
 
     def get_sigma_meas(self):
+        """
+
+        :return: standard deviation of the measurements
+        """
         return self.std_meas
 
     def get_sigma_x(self):
+        """
+
+        :return: standard deviation of the velocity
+        """
         return self.std_dev_x
 
     def get_sigma_z(self):
+        """
+
+        :return: standard deviation of the angular velocity
+        """
         return self.std_dev_z

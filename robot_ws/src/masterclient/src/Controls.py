@@ -36,7 +36,29 @@ def get_rot_dir(theta, curr_pos, tar_pos):
 
 
 class Controls(object):
-    def __init__(self, x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist):
+    def __init__(self):
+        self.x_min = None
+        self.x_max = None
+        self.z_min = None
+        self.z_max = None
+        self.k = None
+        self.t_x = None
+        self.t_z = None
+        self.ok_dist = None
+
+    def initiate(self, x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist):
+        """
+
+        :param x_min: minimum velocity [m/s]
+        :param x_max: maximum velocity [m/s]
+        :param z_min: minimum angular velocity [rad/s]
+        :param z_max: maximum angular velocity [rad/s]
+        :param k: gradient descent coefficient (0<k<1)
+        :param t_x: time to reach target pos if as if the robot was facing its target pos
+        :param t_z: time to rotate to face target pos
+        :param ok_dist: minimum distance to target pos that will make the robot move
+        :return:
+        """
         self.x_min = x_min
         self.x_max = x_max
         self.z_min = z_min
@@ -45,6 +67,7 @@ class Controls(object):
         self.t_x = t_x
         self.t_z = t_z
         self.ok_dist = ok_dist
+        return
 
     def find_next_pos(self, curr_pos, neighbour_1_pos, neighbour_2_pos):
         """
