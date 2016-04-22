@@ -180,10 +180,15 @@ class MainController():
                 # meas_pos = 2*np.random.rand(2)-1
                 meas_pos = np.empty(2)
                 meas_pos = np.array(self.nodes[i].measure_coordinates(), dtype=np.float32)
-                print "this was meas_pos", meas_pos
-                x2, v2 = self.nodes[i].get_kalman().correct(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
-                                                            meas_pos, self.nodes[i].get_x(), self.nodes[i].get_z(),
+                if (np.size(meas_pos) < 2):
+                    x2, v2 = self.nodes[i].get_kalman().predict(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
+                                                            self.nodes[i].get_x(), self.nodes[i].get_z(),
                                                             self.dt)
+                else:
+                    print "this was meas_pos", meas_pos
+                    x2, v2 = self.nodes[i].get_kalman().correct(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
+                                                                meas_pos, self.nodes[i].get_x(), self.nodes[i].get_z(),
+                                                                self.dt)
                 self.nodes[i].set_theta(v2)
                 self.nodes[i].set_pos(np.array([x2[0, 0], x2[2, 0]]))
                 print "Robot %s corrects" % i
