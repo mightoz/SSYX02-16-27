@@ -37,7 +37,7 @@ def get_rot_dir(theta, curr_pos, tar_pos):
 
 def get_trans_magn_2(current, target, t):
     """
-    
+
     :param current:
     :param target:
     :param t:
@@ -209,7 +209,10 @@ class Controls(object):
         :param val: maximum velocity [m/s]
         :return:
         """
-        self.x_max = val
+        if val < self.x_min:
+            self.x_max = self.x_min
+        else:
+            self.x_max = val
 
     def set_x_min(self, val):
         """
@@ -217,7 +220,10 @@ class Controls(object):
         :param val: minimum velocity [m/s]
         :return:
         """
-        self.x_min = val
+        if val > self.x_max:
+            self.x_min = self.x_max
+        else:
+            self.x_min = val
 
     def set_z_max(self, val):
         """
@@ -225,7 +231,10 @@ class Controls(object):
         :param val: maximum angular velocity [rad/s]
         :return:
         """
-        self.z_max = val
+        if val < self.z_min:
+            self.z_max = self.z_min
+        else:
+            self.z_max = val
 
     def set_z_min(self, val):
         """
@@ -233,7 +242,10 @@ class Controls(object):
         :param val: minimum angular velocity [rad/s]
         :return:
         """
-        self.z_min = val
+        if val > self.z_max:
+            self.z_min = self.z_max
+        else:
+            self.z_min = val
 
     def set_k(self, val):
         """
@@ -254,7 +266,10 @@ class Controls(object):
         :param val: time to reach target pos if as if the robot was facing its target pos
         :return:
         """
-        self.t_x = val
+        if val <= 0:
+            self.t_x = 1e-40
+        else:
+            self.t_x = val
 
     def set_t_z(self, val):
         """
@@ -262,7 +277,10 @@ class Controls(object):
         :param val: time to rotate to face target pos
         :return:
         """
-        self.t_z = val
+        if val <= 0:
+            self.t_z = 1e-40
+        else:
+            self.t_z = val
 
     def set_ok_dist(self, val):
         """
@@ -270,7 +288,10 @@ class Controls(object):
         :param val: minimum distance to target pos that will make the robot move
         :return:
         """
-        self.ok_dist = val
+        if val < 1e-40:
+            self.ok_dist = 1e-40
+        else:
+            self.ok_dist = val
 
     def get_x_max(self):
         """
