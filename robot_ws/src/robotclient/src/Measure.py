@@ -77,7 +77,7 @@ class Measure(object):
         pos = RunLocateRobot.run_loc_rob(self.connect_request.get_socket(),
                                          self.connect_request.get_rcm_ip(),
                                          self.anchors, self.nbr_of_measurements,
-                                         self.tol, 1)
+                                         self.tol, 0)
         if pos is None:
             pos = np.array([0, 0, -1])
         if np.size(pos) != 2:
