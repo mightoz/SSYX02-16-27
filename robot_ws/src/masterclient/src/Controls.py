@@ -174,7 +174,9 @@ class Controls(object):
         tar_pos = self.find_next_pos(curr_pos, neighbour_1_pos, neighbour_2_pos)
         next_z = get_rot_dir(theta, curr_pos, tar_pos) * self.get_rot_magn_1(theta, curr_pos, tar_pos)
         next_x = self.get_trans_magn_1(curr_pos, tar_pos, np.abs(next_z * self.t_z))
-        return next_x-wheel_dist*next_z/2, next_z
+        print "Robot has", tar_pos, next_x , next_z
+        print "neighbour", neighbour_1_pos, neighbour_2_pos
+        return next_x, next_z ##-wheel_dist*next_z/2
 
     def set_x_max(self, val):
         self.x_max = val

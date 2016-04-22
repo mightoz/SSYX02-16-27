@@ -5,7 +5,7 @@ import rospy
 import numpy as np
 
 from rospy.numpy_msg import numpy_msg
-from rospy_tutorials.msg import Floats
+from robotclient.msg import Floats
 from geometry_msgs.msg import Twist
 # from robotclient.msg import *
 
@@ -13,6 +13,8 @@ import Kalman
 import Controls
 
 from robotclient.srv import *
+
+rate = 0
 
 
 # TODO - neighbors might be better if they were actual objects perhaps
@@ -100,10 +102,13 @@ class Node(object):
         tmp_pos = np.empty([], dtype=np.float32)
         if ((self.type == "Base") or (self.type == "End")):
             tmp_pos = self.pos
-        else :
+        else:
             srv = 'get_coord' + str(self.node)
             rospy.wait_for_service(srv)
             get_coords = rospy.ServiceProxy(srv, GetCoord)
+	    global rate
+	    rate = rate + 1
+            print "This is measure ", rate
             try:
                 f = Floats()
                 f = get_coords(1)
@@ -155,8 +160,10 @@ class Node(object):
         else:
             srv = '/updateTwist' + str(self.node)
             rospy.wait_for_service(srv)
-            update_twist = rospy.Serviceproxy(srv, UpdateTwist)
+            update_twist = rospy.ServiceProxy(srv, UpdateTwist)
             try:
-                a = update_twist(self.x,self.z)
+		f = Floats()
+		f.data = np.array([self.x, self.z], dtype=np.float32) 
+                a = update_twist(f)
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))
