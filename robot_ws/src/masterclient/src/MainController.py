@@ -60,7 +60,7 @@ class MainController():
         sigma_x = 0.05  # Standard deviation for speed, percentage
         sigma_z = 0.025  # Standard deviation for rotation, percentage
         sigma_meas = 0.05  # Standard deviation for UWB measurements, NOT percentage
-        dt = 0.5  # Timesteps for loop, used in kalmanpredict
+        self.dt = 0.5  # Timesteps for loop, used in kalmanpredict
         k = 0.5  # Gradient step
         t_x = 2  # Speed factor forward, lower factor = higher speed, !=0
         t_z = 2  # Speed factor rotation, -||-  !=0
@@ -184,7 +184,8 @@ class MainController():
         for i in range(1, self.nbr_of_nodes - 1):  # Calculate/Estimate new state
             if i != corr_idx:
                 x2, v2 = self.nodes[i].get_kalman().predict(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
-                                                            self.nodes[i].get_x(), self.nodes[i].get_z())
+                                                            self.nodes[i].get_x(), self.nodes[i].get_z(),
+                                                            self.dt)
                 self.nodes[i].set_theta(v2)
                 self.nodes[i].set_pos(np.array([x2[0, 0], x2[2, 0]]))
                 print "Robot %s predicts" % i
@@ -195,7 +196,8 @@ class MainController():
                 meas_pos = np.array(self.nodes[i].measure_coordinates(), dtype=np.float32)
                 print "this was meas_pos", meas_pos
                 x2, v2 = self.nodes[i].get_kalman().correct(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
-                                                            meas_pos, self.nodes[i].get_x(), self.nodes[i].get_z())
+                                                            meas_pos, self.nodes[i].get_x(), self.nodes[i].get_z(),
+                                                            self.dt)
                 self.nodes[i].set_theta(v2)
                 self.nodes[i].set_pos(np.array([x2[0, 0], x2[2, 0]]))
                 print "Robot %s corrects" % i
