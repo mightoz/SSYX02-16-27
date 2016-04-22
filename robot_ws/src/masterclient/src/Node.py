@@ -120,6 +120,16 @@ class Node(object):
         :return:
         """
         self.pos = val
+        if (self.type == "Base" or self.type == "End"):
+            self.recorded_positions = val
+            self.recorded_x_positions = np.array([val[0]], dtype=np.float32)
+            self.recorded_y_positions = np.array([val[1]], dtype=np.float32)
+            print self.recorded_positions
+            print self.recorded_x_positions
+            print self.recorded_y_positions
+
+    def get_type(self):
+        return self.type 
 
     def get_x(self):
         """
@@ -176,9 +186,6 @@ class Node(object):
             srv = 'get_coord' + str(self.node)
             rospy.wait_for_service(srv)
             get_coords = rospy.ServiceProxy(srv, GetCoord)
-            global rate
-            rate += 1
-            print "This is measure ", rate
             try:
                 f = Floats()
                 f = get_coords(1)
