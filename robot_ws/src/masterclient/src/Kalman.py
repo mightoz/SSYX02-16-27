@@ -3,7 +3,15 @@ import numpy as np
 
 class Kalman(object):
 
-    def __init__(self, sigma_meas, sigma_x, sigma_z, time_step):
+    def __init__(self):
+        self.p = None
+        self.q = None
+        self.std_meas = None
+        self.std_dev_x = None
+        self.std_dev_z = None
+        pass
+
+    def initiate(self, sigma_meas, sigma_x, sigma_z, time_step):
         """
 
         :param sigma_meas: standard deviation of measurement noise. sqrt(2) times the gauss radius
@@ -12,12 +20,19 @@ class Kalman(object):
         the gauss radius (where the function has decreased by a factor exp(-1)) of the control
         :param sigma_z: standard deviation of rotational noise relative to 1 (rad/s for example). sqrt(2) times
         the gauss radius (where the function has decreased by a factor exp(-1)) of the control
+        :param time_step: time to execute controls during
         """
         self.p = 0.1*np.eye(4)
-        self.Q = np.zeros((4, 4))
-        self.std_meas = sigma_meas
-        self.std_dev_x = sigma_x
-        self.std_dev_z = sigma_z
+        self.q = np.zeros((4, 4))
+        self.std_meas = np.abs(sigma_meas)
+        self.std_dev_x = np.abs(sigma_x)
+        self.std_dev_z = np.abs(sigma_z)
+        if self.std_meas < 1e-40:
+            self.std_meas = 1e-40
+        if self.std_dev_x < 1e-40:
+            self.std_dev_x = 1e-40
+        if self.std_dev_z < 1e-40:
+            self.std_dev_z = 1e-40
         for i in range(0, 30):
             self.correct(np.array([0, 0]), 0, np.random.normal(0, self.std_meas, 2), 0, 1, time_step)
 
@@ -31,6 +46,7 @@ class Kalman(object):
         :param time_step: time to execute controls during
         :return: the control noise standard deviation matrix based on the control input
         """
+        time_step = np.abs(time_step)
         if z > 1e-40:
             x_w1 = x*(np.sin(theta+z*time_step)-np.sin(theta))/z
             x_w2 = z*(np.cos(theta+z*time_step)*time_step-(np.sin(theta+z*time_step)-np.sin(theta))/z)*x/z
@@ -45,16 +61,16 @@ class Kalman(object):
             y_w1 = x*np.sin(theta)*time_step
             y_w2 = 0
             y_dot_w1 = x*np.sin(theta)
-        L = np.array([[x_w1, x_w2, 0, 0],
+        l = np.array([[x_w1, x_w2, 0, 0],
                       [x_dot_w1, 0, 0, 0],
                       [y_w1, y_w2, 0, 0],
                       [y_dot_w1, 0, 0, 0]])
 
-        Q = np.array([[self.std_dev_x**2, 0, 0, 0],
+        q = np.array([[self.std_dev_x**2, 0, 0, 0],
                       [0, self.std_dev_z**2, 0, 0],
                       [0, 0, 0, 0],
                       [0, 0, 0, 0]])
-        return np.dot(np.dot(L, Q), L.T)
+        return np.dot(np.dot(l, q), l.T)
 
     def predict(self, pos, theta, x, z, time_step):
         """
@@ -69,6 +85,7 @@ class Kalman(object):
         :param time_step: time to execute controls during
         :return: A prediction of the current position based on the control input and last position position
         """
+        time_step = np.abs(time_step)
         if z > 1e-40:
             x_k_k1 = np.array([[pos[0]+(np.sin(theta+z*time_step)-np.sin(theta))*x/z],
                                [x*np.cos(theta)],
@@ -80,7 +97,7 @@ class Kalman(object):
                                [pos[1]+x*np.sin(theta)*time_step],
                                [x*np.sin(theta)]])  # predicted state
         theta += z*time_step
-        self.Q += self.get_noise(theta, x, z, time_step)
+        self.q += self.get_noise(theta, x, z, time_step)
         return x_k_k1, theta
 
     def correct(self, pos, theta, pos_meas, x, z, time_step):
@@ -96,12 +113,15 @@ class Kalman(object):
         :return: the (hopefully) best estimation of the state ([[x], [x_dot], [y], [y_dot]]) given the error in
         measurements and control
         """
+        time_step = np.abs(time_step)
+        if np.size(pos_meas) < 2:
+            return self.predict(pos, theta, x, z, time_step)
         if z > 1e-40:
             x_k_k1 = np.array([[pos[0]+(np.sin(theta+z*time_step)-np.sin(theta))*x/z],
                                [x*np.cos(theta)],
                                [pos[1]+(np.cos(theta)-np.cos(theta+z*time_step))*x/z],
                                [x*np.sin(theta)]])  # predicted state
-            F = np.array([[1, np.sin(z*time_step)/z, 0, (np.cos(z*time_step)-1)/z],
+            f = np.array([[1, np.sin(z*time_step)/z, 0, (np.cos(z*time_step)-1)/z],
                           [0, 1, 0, 0],
                           [0, (1-np.cos(z*time_step))/z, 1, np.sin(z*time_step)/z],
                           [0, 0, 0, 1]])
@@ -110,16 +130,16 @@ class Kalman(object):
                                [x*np.cos(theta)],
                                [pos[1]+x*np.sin(theta)*time_step],
                                [x*np.sin(theta)]])  # predicted state
-            F = np.array([[1, time_step, 0, 0],
+            f = np.array([[1, time_step, 0, 0],
                           [0, 1, 0, 0],
                           [0, 0, 1, time_step],
                           [0, 0, 0, 1]])
-        self.Q += self.get_noise(theta, x, z)  # control noise standard deviation
-        R = self.std_meas**2*np.array([[1, 0, 0, 0],
+        self.q += self.get_noise(theta, x, z, time_step)  # control noise standard deviation
+        r = self.std_meas**2*np.array([[1, 0, 0, 0],
                                       [0, 1, 0, 0],
                                       [0, 0, 1, 0],
                                       [0, 0, 0, 1]])  # measurement noise standard deviation
-        H = np.array([[1, 0, 0, 0],
+        h = np.array([[1, 0, 0, 0],
                       [0, 0, 0, 0],
                       [0, 0, 1, 0],
                       [0, 0, 0, 0]])  # observation matrix
@@ -127,24 +147,33 @@ class Kalman(object):
                         [0],
                         [pos_meas[1]],
                         [0]])  # measured state
-        y_k = z_k - np.dot(H, x_k_k1)  # residual
-        p_k_k1 = np.dot(np.dot(F, self.p), F.T) + self.Q  # predicted current covariance
-        S = np.linalg.solve(np.dot(np.dot(H, p_k_k1), H.T) + R, np.eye(4))
-        K = np.dot(np.dot(p_k_k1, H.T), S)  # Kalman gain
-        x_k_k = x_k_k1 + np.dot(K, y_k)  # current state
-        self.p = np.dot(np.eye(4) - np.dot(K, H), p_k_k1)  # current covariance
+        y_k = z_k - np.dot(h, x_k_k1)  # residual
+        p_k_k1 = np.dot(np.dot(f, self.p), f.T) + self.q  # predicted current covariance
+        s = np.linalg.solve(np.dot(np.dot(h, p_k_k1), h.T) + r, np.eye(4))
+        kalman_gain = np.dot(np.dot(p_k_k1, h.T), s)  # Kalman gain
+        x_k_k = x_k_k1 + np.dot(kalman_gain, y_k)  # current state
+        self.p = np.dot(np.eye(4) - np.dot(kalman_gain, h), p_k_k1)  # current covariance
         theta += z*time_step
-        self.Q = np.zeros((4, 4))  # reset control noise after correction
+        self.q = np.zeros((4, 4))  # reset control noise after correction
         return x_k_k, theta
 
     def set_sigma_meas(self, val):
-        self.std_meas = val
+        if self.std_meas > 1e-40:
+            self.std_meas = val
+        else:
+            self.std_meas = 1e-40
 
     def set_sigma_x(self, val):
-        self.std_dev_x = val
+        if self.std_dev_x > 1e-40:
+            self.std_dev_x = val
+        else:
+            self.std_dev_x = 1e-40
 
     def set_sigma_z(self, val):
-        self.std_dev_z = val
+        if self.std_dev_z > 1e-40:
+            self.std_dev_z = val
+        else:
+            self.std_dev_z = 1e-40
 
     def get_sigma_meas(self):
         return self.std_meas
@@ -154,4 +183,3 @@ class Kalman(object):
 
     def get_sigma_z(self):
         return self.std_dev_z
-
