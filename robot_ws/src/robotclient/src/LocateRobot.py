@@ -3,18 +3,32 @@ PKG = 'numpy'
 import numpy as np
 import numpy.matlib as npm
 import numpy.linalg as npl
+import matplotlib.pyplot as plt
 
 
-def locate_robot(anchors_pos, robot_anchor_dist, max_tol):
+def get_anchor_pos(anchors):
+    anchor_pos = np.zeros((2, np.size(anchors)))
+    for i in range(0, np.size(anchors)):
+        if anchors[i].get_pos() is not None:
+            anchor_pos[:, i] = anchors[i].get_pos()
+        else:
+            print 'Anchor %s has no position set' % i
+            return
+    return anchor_pos
+
+
+def locate_robot(anchors, robot_anchor_dist, max_tol, plot):
     """
 
-    :param anchors_pos: A matrix containing the coordinates of the anchors
+    :param anchors: A list oftThe instances of the Anchor class used
     :param robot_anchor_dist: matrix containing the distance between each robot and each node. element
     i,j in this matrix represent the distance between node i and robot j.
     :param max_tol: A list of maximum average residual in position as well as maximum average difference
     between last residual in position and current residual that the user is satisfied with.
+    :param plot: True if you want to see the distance to each anchor as well as the calculated position
     :return: Matrix containing x and y coordinates of the robots
     """
+    anchors_pos = get_anchor_pos(anchors)
     anchor_pos_x = np.array([anchors_pos[0, :]]).T  # creates a column vector of node's x-pos
     anchor_pos_y = np.array([anchors_pos[1, :]]).T  # creates a column vector of node's y-pos
     # creates a starting point ([x0;y0]) for the steepest descent to work with for all positions
@@ -58,4 +72,16 @@ def locate_robot(anchors_pos, robot_anchor_dist, max_tol):
             robot_pos[1, :] = robot_pos[1, :] + move_y.sum(axis=0)
         else:
             break
+    if plot:
+        v = np.linspace(0, 2 * np.pi, 100)
+        for i in range(0, np.size(anchors)):
+            if anchors[i].get_pos() is not None:
+                x = anchors[i].get_pos()[0] + robot_anchor_dist[i, 0] * np.cos(v)
+                y = anchors[i].get_pos()[1] + robot_anchor_dist[i, 0] * np.sin(v)
+                plt.plot(x, y)
+            else:
+                print 'Anchor %s has no position set' % i
+                return
+        for i in range(0, np.size(robot_pos, axis=1)):
+            plt.plot(robot_pos)
     return robot_pos

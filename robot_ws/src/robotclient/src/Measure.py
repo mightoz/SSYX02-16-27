@@ -8,9 +8,8 @@ import rospy
 from rospy.numpy_msg import numpy_msg
 from robotclient.msg import *
 """
-import ConnectionRequest
+import ConnectionHandler
 import Anchor
-import RunLocateRobot
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -20,7 +19,7 @@ class Measure(object):
     def __init__(self, nbr_of_anchors):
         self.nbr_of_measurements = 1
         self.tol = [1e-6, 1e-6]
-        self.connect_request = ConnectionRequest.ConnectionRequest()
+        self.connect_request = ConnectionHandler.ConnectionRequest()
         self.nbr_of_anchors = nbr_of_anchors
         self.anchors = []
         for i in range(0, self.nbr_of_anchors):
@@ -74,10 +73,7 @@ class Measure(object):
             self.connect_request.dc_req(0)  # close the socket
             return
         # Params: UWB-transceiver ip and coordinates for each transceiver.
-        pos = RunLocateRobot.run_loc_rob(self.connect_request.get_socket(),
-                                         self.connect_request.get_rcm_ip(),
-                                         self.anchors, self.nbr_of_measurements,
-                                         self.tol, 0)
+        pos = self.connect_request.run_loc_rob(self.anchors, self.nbr_of_measurements, self.tol, False)
         if pos is None:
             pos = np.array([0, 0, -1])
         if np.size(pos) != 2:
