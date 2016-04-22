@@ -115,9 +115,6 @@ class Node(object):
             srv = 'get_coord' + str(self.node)
             rospy.wait_for_service(srv)
             get_coords = rospy.ServiceProxy(srv, GetCoord)
-	    global rate
-	    rate = rate + 1
-            print "This is measure ", rate
             try:
                 f = Floats()
                 f = get_coords(1)
@@ -171,8 +168,8 @@ class Node(object):
             rospy.wait_for_service(srv)
             update_twist = rospy.ServiceProxy(srv, UpdateTwist)
             try:
-		f = Floats()
-		f.data = np.array([self.x, self.z], dtype=np.float32) 
+                f = Floats()
+                f.data = np.array([self.x, self.z], dtype=np.float32) 
                 a = update_twist(f)
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))

@@ -69,64 +69,64 @@ class MainController():
             else:
                 self.nodes += [Node.Node(i, "Robot")]
                 self.nodes[i].set_kalman(sigma_meas, sigma_x, sigma_z)
-    #            self.nodes[i].set_controls(x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist)
-    #   
-    #    #Init for robot orientation and position
-    #    for i in range(1, self.nbr_of_nodes-1):
-    #        print "For loop", i
-    #        first_pos = np.empty([], dtype=np.float32)
-    #        second_pos = np.empty([], dtype=np.float32)
-    #        srv = 'get_coord' + str(i)
-    #        rospy.wait_for_service(srv)
-    #        get_coords = rospy.ServiceProxy(srv, GetCoord)
-    #        try:
-    #            f = Floats()
-    #            f = get_coords(1)
-    #            first_pos = np.array(f.data.data, dtype=np.float32)
-    #        except rospy.ServiceException as exc:
-    #            print("Service did not process request: " + str(exc))
-    #        srv = '/moveRobot' + str(i)
-    #        rospy.wait_for_service(srv)
-    #        mv_robot = rospy.ServiceProxy(srv, MoveRobot)
-    #        try:
-    #            x = mv_robot(0.2)
-    #        except rospy.ServiceException as exc:
-    #            print("Service did not process request: " + str(exc))
-    #            
-    #        srv = 'get_coord' + str(i)
-#    #        rospy.wait_for_service(srv)
-#    #        get_coords = rospy.ServiceProxy(srv, GetCoord)
-#
-#    #        try:
-#    #            f = Floats()
-#    #            f = get_coords(1)
-#    #            second_pos = np.array(f.data.data, dtype=np.float32)
-#    #        except rospy.ServiceException as exc:
-#    #            print("Service did not process request: " + str(exc))
-#    #        self.nodes[i].set_pos(second_pos)
-#    #        print second_pos
-#    #        print first_pos
-#    #        A = second_pos - first_pos
-#    #        B = np.array([1,0], dtype=np.float32)
-#    #        if np.linalg.norm(A) >1e-40:
-#    #            phi = np.arccos(np.dot(A,B)/(np.linalg.norm(A)*np.linalg.norm(B)))
-#    #        if second_pos[1]>=first_pos[1]:
-#    #            self.nodes[i].set_theta(phi)
-#    #        else:
-#    #            self.nodes[i].set_theta(2*np.pi-phi)
-#    #        print self.nodes[i].get_theta()*180/np.pi
-#    #       #End of initation
-        fakeend = np.array([0,-2], dtype=np.float32)
-        fakebase = np.array([0,3], dtype=np.float32)
-        self.nodes[0].set_pos(fakeend)
-        self.nodes[3].set_pos(fakebase)
-        print "base:", self.nodes[0].get_pos()
-        print "end:", self.nodes[3].get_pos()
-          #rospy.Subscriber("iterator", String, self.align_robots)  
+                self.nodes[i].set_controls(x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist)
+       
+        #Init for robot orientation and position
+        for i in range(1, self.nbr_of_nodes-1):
+            print "For loop", i
+            first_pos = np.empty([], dtype=np.float32)
+            second_pos = np.empty([], dtype=np.float32)
+            srv = 'get_coord' + str(i)
+            rospy.wait_for_service(srv)
+            get_coords = rospy.ServiceProxy(srv, GetCoord)
+            try:
+                f = Floats()
+                f = get_coords(1)
+                first_pos = np.array(f.data.data, dtype=np.float32)
+            except rospy.ServiceException as exc:
+                print("Service did not process request: " + str(exc))
+            srv = '/moveRobot' + str(i)
+            rospy.wait_for_service(srv)
+            mv_robot = rospy.ServiceProxy(srv, MoveRobot)
+            try:
+                x = mv_robot(0.2)
+            except rospy.ServiceException as exc:
+                print("Service did not process request: " + str(exc))
+                
+            srv = 'get_coord' + str(i)
+            rospy.wait_for_service(srv)
+            get_coords = rospy.ServiceProxy(srv, GetCoord)
+
+            try:
+                f = Floats()
+                f = get_coords(1)
+                second_pos = np.array(f.data.data, dtype=np.float32)
+            except rospy.ServiceException as exc:
+                print("Service did not process request: " + str(exc))
+            self.nodes[i].set_pos(second_pos)
+            print second_pos
+            print first_pos
+            A = second_pos - first_pos
+            B = np.array([1,0], dtype=np.float32)
+            if np.linalg.norm(A) >1e-40:
+                phi = np.arccos(np.dot(A,B)/(np.linalg.norm(A)*np.linalg.norm(B)))
+            if second_pos[1]>=first_pos[1]:
+                self.nodes[i].set_theta(phi)
+            else:
+                self.nodes[i].set_theta(2*np.pi-phi)
+            print self.nodes[i].get_theta()*180/np.pi
+           #End of initation
+
+        initend = np.array([0,-2], dtype=np.float32)
+        initbase = np.array([0,3], dtype=np.float32)
+        self.nodes[0].set_pos(initend)
+        self.nodes[3].set_pos(initbase)
+        print "Inital position of base:", self.nodes[0].get_pos()
+        print "Inital position of end:", self.nodes[3].get_pos()
+
         s = rospy.Service('get_coordEnd', BaseEndGetCoord, self.handle_get_end)
         s = rospy.Service('get_coordBase', BaseEndGetCoord, self.handle_get_base)  
         service = rospy.Service('iterator', Iterator, self.align_robots)
-        print "reached"
         rospy.spin()
         rospy.on_shutdown(self.terminator)
 
@@ -202,13 +202,11 @@ class MainController():
                                                                 self.nodes[i].get_axlen())
             self.nodes[i].set_x(x3)
             self.nodes[i].set_z(v3)
+            print i
             self.nodes[i].update_twist()
+            
 
     def terminator(self):
-        #for i in range(1, self.nbr_of_nodes-1):
-        #    self.nodes[i].set_x(0.0)
-        #    self.nodes[i].set_z(0.0)
-        #    self.nodes[i].update_twist()
         # For printing, colors hardcoded
         for i in range(0, self.nbr_of_nodes):
             print "Recorded positions for Node %s are %s" % (self.nodes[i], self.nodes[i].get_recorded_positions())
@@ -217,7 +215,6 @@ class MainController():
             name = "%s position" % self.nodes[i].get_type()
             plt.plot(self.nodes[i].get_recorded_x_positions(), self.nodes[i].get_recorded_y_positions(), ".", label=name, color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
 
-        # Hardcoded positions of RCM?
         plt.plot(-1, 1, 'x', label="Reference position 1", color = 'g') #number 1
         plt.plot(2, 0, 'x', label="Reference position 2", color = 'r') #number 2
         plt.plot(1, -2, 'x', label="Reference position 3", color = 'b') #number 3
