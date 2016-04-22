@@ -34,8 +34,13 @@ class ConnectionRequest(object):
         :param do_print: The config will be printed if do_print is 1. It will not be printed if it is 0.
         :return: The socket that has been created and the ip of the RCM that has been constructed from its id.
         """
-
-        self.config_handler.get_configuration(self.s, self.req_ip, self._port)
+        if self.req_ip is not None:
+            status = self.config_handler.get_configuration(self.s, self.req_ip, self._port)
+            if status == -1:
+                return -1
+        else:
+            print 'UWB radio has no ip set'
+            return -1
 
         """
         Uncomment this to change configuration parameters.
@@ -46,8 +51,11 @@ class ConnectionRequest(object):
         # self.config_handler.config.tx_pwr = np.array([10], dtype=np.uint8)
         self.config_handler.config.flags = np.array([1], dtype=np.uint16)  # make sure scan data is set (not default)
         self.config_handler.config.persist_flag = np.array([0], dtype=np.uint8)  # Don't change this in flash
-
-        self.config_handler.set_conf(self.s, self.req_ip, self._port)
+        if self.config_handler.config.node_id is not None:
+            self.config_handler.set_conf(self.s, self.req_ip, self._port)
+        else:
+            print 'Unable to parse config, check your connection with the UWB'
+            return -1
         if do_print:
             print self.config_handler.config
         return

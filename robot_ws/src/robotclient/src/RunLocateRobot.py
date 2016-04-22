@@ -28,25 +28,31 @@ def run_loc_rob(s, ip, anchors, nbr_of_success_readings, max_tol, do_print):
     distance = np.zeros((np.size(anchors), 1), dtype=np.float)
     for i in range(0, nbr_of_success_readings):
         for j in range(0, np.size(anchors)):
-            dist = GetRangeMeasurment.meas_range(s, ip, anchors[j].get_ip(), do_print)  # get the distance data.
-            distance[j, 0] += np.float(dist) / nbr_of_success_readings  # add the average distance.
+            if anchors[j].get_ip() is not None and ip is not None:
+                dist = GetRangeMeasurment.meas_range(s, ip, anchors[j].get_ip(), do_print)  # get the distance data.
+                distance[j, 0] += dist / nbr_of_success_readings  # add the average distance.
+            else:
+                print 'Check the ip of anchor %s and UWB radio on the robot' % j
+                return
 
     # plots circles around the nodes with the radius being the measured distances to the robots.
     if do_print:
         v = np.linspace(0, 2 * np.pi, 100)
-        x = anchors[0].get_pos()[0] + distance[0, 0] * np.cos(v)
-        y = anchors[0].get_pos()[1] + distance[0, 0] * np.sin(v)
-        plt.plot(x, y)
-        x = anchors[1].get_pos()[0] + distance[1, 0] * np.cos(v)
-        y = anchors[1].get_pos()[1] + distance[1, 0] * np.sin(v)
-        plt.plot(x, y)
-        x = anchors[0].get_pos()[0] + distance[2, 0] * np.cos(v)
-        y = anchors[0].get_pos()[1] + distance[2, 0] * np.sin(v)
-        plt.plot(x, y)
-
+        for i in range(0, np.size(anchors)):
+            if anchors[i].get_pos() is not None:
+                x = anchors[i].get_pos()[0] + distance[i, 0] * np.cos(v)
+                y = anchors[i].get_pos()[1] + distance[i, 0] * np.sin(v)
+                plt.plot(x, y)
+            else:
+                print 'Anchor %s has no position set' % i
+                return
     # calculate the position based on the distance measured above.
     anchor_pos = np.zeros((2, np.size(anchors)))
     for i in range(0, np.size(anchors)):
-        anchor_pos[:, i] = anchors[i].get_pos()
+        if anchors[i].get_pos() is not None:
+            anchor_pos[:, i] = anchors[i].get_pos()
+        else:
+            print 'Anchor %s has no position set' % i
+            return
     pos = LocateRobot.locate_robot(anchor_pos, distance, max_tol)
     return pos

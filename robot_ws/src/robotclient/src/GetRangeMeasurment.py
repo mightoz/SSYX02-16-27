@@ -21,14 +21,22 @@ def meas_range(s, requester_ip, responder_id, do_print):
     while success < 1:
         msg_id = (msg_id + 1) % (0xffff+1)  # contains information about how many times the range have been requested.
         # checks if the RCM is ready to transmit the measured range.
-        status, msg_id_confirm = RCMSendRangeRequest.req_range(s, requester_ip, msg_id, responder_id)
+        try:
+            status, msg_id_confirm = RCMSendRangeRequest.req_range(s, requester_ip, msg_id, responder_id)
+        except TypeError:
+            print 'RCMSendRangeRequest.req_range returned a NoneType value'
+            return
         attempt += 1
         if status[0] == 0:
             # receive information about the measured range and if it was successful.
-            range_info_status, range_info_fre = RCMSendRangeRequest.rcm_minimal_range_info(s)
+            try:
+                range_info_status, range_info_fre = RCMSendRangeRequest.rcm_minimal_range_info(s)
+            except TypeError:
+                print 'RCMSendRangeRequest.rcm_minimal_range_info returned a NoneType value'
+                return
             if range_info_status[0] == 0:  # successful measurement
                 success = 1
-                calc_range = range_info_fre[0]/1000
+                calc_range = range_info_fre[0]/1000.0
             elif range_info_status[0] == 1:
                 print 'range timeout\n'
             elif range_info_status[0] == 2:
@@ -40,8 +48,7 @@ def meas_range(s, requester_ip, responder_id, do_print):
 
         if attempt > 10:
             print 'Error in measuring range'
-            success = 1
-            calc_range = np.array([0, 0], dtype=np.uint32)
+            return
 
     return calc_range
 

@@ -8,7 +8,10 @@ def swap_bytes_16(x):
     :return: The reverse order of the bytes of the given number or array.
     The given number 0xABCD would return 0xCDAB.
     """
-    return ((x << 8) | (x >> 8)) & 0xFFFF
+    if x is not None:
+        return ((x << 8) | (x >> 8)) & 0xFFFF
+    else:
+        return x
 
 
 def swap_bytes_32(x):
@@ -18,10 +21,13 @@ def swap_bytes_32(x):
     :return: The reverse order of the bytes of the given number or array.
     The given number 0x89ABCDEF would return 0xEFCDAB89.
     """
-    return (((x << 24) & 0xFF000000) |
-            ((x << 8) & 0x00FF0000) |
-            ((x >> 8) & 0x0000FF00) |
-            ((x >> 24) & 0x000000FF))
+    if x is not None:
+        return (((x << 24) & 0xFF000000) |
+                ((x << 8) & 0x00FF0000) |
+                ((x >> 8) & 0x0000FF00) |
+                ((x >> 24) & 0x000000FF))
+    else:
+        return x
 
 
 def typecast(x, t):
@@ -33,10 +39,11 @@ def typecast(x, t):
     a 8-bit array containing [0xFA, 0xCE]. Likewise the 8-bit array [0xDE, 0xAD, 0xBE, 0xEF] typecasted to 32-bit would
     return the 32-bit integer 0xDEADBEEF.
     """
-    if t == 8:
-        x.dtype = np.uint8
-    elif t == 16:
-        x.dtype = np.uint16
-    elif t == 32:
-        x.dtype = np.uint32
+    if x is not None:
+        if t == 8:
+            x.dtype = np.uint8
+        elif t == 16:
+            x.dtype = np.uint16
+        elif t == 32:
+            x.dtype = np.uint32
     return x

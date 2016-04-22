@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 PKG = 'numpy'
 import numpy as np
+import socket
 import MiscFunctions as Mf
 
 
@@ -36,13 +37,16 @@ def req_range(s, requester_ip, msg_id, responder_id):
                                              data])
     rcm_send_range_request.dtype = np.uint8
     rcm_send_range_request = bytearray(rcm_send_range_request)
-
     # send data
-    s.sendto(rcm_send_range_request, (requester_ip, port))
-    timeout = 300
-    _packet_length = 8
-    s.settimeout(timeout)
-    msg, msg_addr = s.recvfrom(_packet_length)
+    try:
+        s.sendto(rcm_send_range_request, (requester_ip, port))
+        timeout = 0.3  # s
+        _packet_length = 8
+        s.settimeout(timeout)
+        msg, msg_addr = s.recvfrom(_packet_length)
+    except socket.timeout:
+        print 'connection timed out after %s seconds' % timeout
+        return
     msg = bytearray(msg)  # Unpack string to byte array
 
     # processing message
@@ -67,14 +71,17 @@ def rcm_minimal_range_info(s):
     range_info_status = np.zeros(1, dtype=np.uint8)
     range_info_fre = np.zeros(1, dtype=np.double)
 
-    timeout = 500  # ms
+    timeout = 0.5  # s
     packet_length = 2048  # Largest expected UDP packet (bytes)
 
     rng_info_rcvd = False
-
-    while not rng_info_rcvd:
-        s.settimeout(timeout)
-        msg, msg_addr = s.recvfrom(packet_length)
+    while not rng_info_rcvd:  # this MUST be here
+        try:
+            s.settimeout(timeout)
+            msg, msg_addr = s.recvfrom(packet_length)
+        except socket.timeout:
+            print 'connection timed out after %s seconds' % timeout
+            return
         msg = bytearray(msg)  # Unpack string to byte array
         msg_type = np.array([msg[1], msg[0]], dtype=np.uint8)
         msg_type.dtype = np.uint16

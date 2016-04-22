@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 PKG = 'numpy'
 import numpy as np
+import socket
 import Config
 import MiscFunctions as Mf
 
@@ -29,17 +30,22 @@ class ConfigHandler(object):
                                                     Mf.swap_bytes_16(msg_id[0])], dtype=np.uint16), 8)
         rcm_get_config_request = bytearray(rcm_get_config_request)
 
-        s.sendto(rcm_get_config_request, (ip, port))
-        timeout = 200  # time in ms
-        _packet_length = 32  # size in bytes
-        s.settimeout(timeout)
-        msg, msg_addr = s.recvfrom(_packet_length)
+        try:
+            s.sendto(rcm_get_config_request, (ip, port))
+            timeout = 0.2  # time in s
+            _packet_length = 32  # size in bytes
+            s.settimeout(timeout)
+            msg, msg_addr = s.recvfrom(_packet_length)
+        except socket.timeout:
+            print 'connection timed out after %s seconds' % timeout
+            return -1
         msg = bytearray(msg)
 
         # Processing message
         msg_type = Mf.typecast(np.array([msg[1], msg[0]], dtype=np.uint8), 16)
         if msg_type != np.array([0x0102], dtype=np.uint16):
             print 'Message type %s does not match RCM_GET_CONFIG_CONFIRM.' % msg_type
+            return -1
         else:
             self.config.msg_id = Mf.typecast(np.array([msg[3], msg[2]], dtype=np.uint8), 16)
             self.config.node_id = Mf.typecast(np.array([msg[7], msg[6], msg[5], msg[4]], dtype=np.uint8), 32)
@@ -87,11 +93,15 @@ class ConfigHandler(object):
         rcm_set_config_request = bytearray(rcm_set_config_request)
 
         # send data
-        s.sendto(rcm_set_config_request, (ip, port))
-        timeout = 400  # time in ms
-        _packet_length = 8  # size in byte
-        s.settimeout(timeout)
-        msg, msg_addr = s.recvfrom(_packet_length)
+        try:
+            s.sendto(rcm_set_config_request, (ip, port))
+            timeout = 0.4  # time in s
+            _packet_length = 8  # size in byte
+            s.settimeout(timeout)
+            msg, msg_addr = s.recvfrom(_packet_length)
+        except socket.timeout:
+            print 'connection timed out after %s seconds' % timeout
+            return
         msg = bytearray(msg)  # Unpack string to byte array
 
         # processing response
