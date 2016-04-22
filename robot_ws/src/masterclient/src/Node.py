@@ -19,7 +19,6 @@ rate = 0
 
 # TODO - neighbors might be better if they were actual objects perhaps
 class Node(object):
-
     def __init__(self, num, node_type):
         """
 
@@ -177,8 +176,8 @@ class Node(object):
             srv = 'get_coord' + str(self.node)
             rospy.wait_for_service(srv)
             get_coords = rospy.ServiceProxy(srv, GetCoord)
-	    global rate
-	    rate = rate + 1
+            global rate
+            rate += 1
             print "This is measure ", rate
             try:
                 f = Floats()
@@ -236,7 +235,7 @@ class Node(object):
         rospy.wait_for_service(srv)
         mv_robot = rospy.ServiceProxy(srv, MoveRobot)
         try:
-            x = mv_robot(length)
+            mv_robot(length)
         except rospy.ServiceException as exc:
             print("Service did not process request: " + str(exc))
 
@@ -250,7 +249,7 @@ class Node(object):
         rospy.wait_for_service(srv)
         mv_robot = rospy.ServiceProxy(srv, RotateRobot)
         try:
-            x = mv_robot(angle)
+            mv_robot(angle)
         except rospy.ServiceException as exc:
             print("Service did not process request: " + str(exc))
 
@@ -266,8 +265,8 @@ class Node(object):
             rospy.wait_for_service(srv)
             update_twist = rospy.ServiceProxy(srv, UpdateTwist)
             try:
-		f = Floats()
-		f.data = np.array([self.x, self.z], dtype=np.float32) 
-                a = update_twist(f)
+                f = Floats()
+                f.data = np.array([self.x, self.z], dtype=np.float32)
+                update_twist(f)
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))
