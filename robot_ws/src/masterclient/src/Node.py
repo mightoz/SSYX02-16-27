@@ -48,11 +48,10 @@ class Node(object):
         self.kalman = Kalman.Kalman(0.5, 0, 0, 0)
         self.controls = Controls.Controls(0, 0, 0, 0, 0, 2, 2, 0)
 
-    def set_kalman(self, sigma_meas, sigma_x, sigma_z, dt):
-        self.kalman.set_sigma_meas(sigma_meas)
+    def set_kalman(self, sigma_meas, sigma_x, sigma_z):
         self.kalman.set_sigma_x(sigma_x)
         self.kalman.set_sigma_z(sigma_z)
-        self.kalman.set_time_step(dt)
+        self.kalman.set_sigma_meas(sigma_meas)
 
     def set_controls(self, x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist):
         self.controls.set_x_min(x_min)
@@ -75,6 +74,16 @@ class Node(object):
 
     def set_pos(self, val):
         self.pos = val
+        if (self.type == "Base" or self.type == "End"):
+            self.recorded_positions = val
+            self.recorded_x_positions = np.array([val[0]], dtype=np.float32)
+            self.recorded_y_positions = np.array([val[1]], dtype=np.float32)
+            print self.recorded_positions
+            print self.recorded_x_positions
+            print self.recorded_y_positions
+
+    def get_type(self):
+        return self.type 
 
     def get_x(self):
         return self.x

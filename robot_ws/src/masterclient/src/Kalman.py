@@ -114,7 +114,7 @@ class Kalman(object):
                           [0, 1, 0, 0],
                           [0, 0, 1, time_step],
                           [0, 0, 0, 1]])
-        self.Q += self.get_noise(theta, x, z)  # control noise standard deviation
+        self.Q += self.get_noise(theta, x, z, time_step)  # control noise standard deviation
         R = self.std_meas**2*np.array([[1, 0, 0, 0],
                                       [0, 1, 0, 0],
                                       [0, 0, 1, 0],
