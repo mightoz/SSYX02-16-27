@@ -19,8 +19,14 @@ rate = 0
 
 # TODO - neighbors might be better if they were actual objects perhaps
 class Node(object):
-    def __init__(self, num, node_type):
 
+    def __init__(self, num, node_type):
+        """
+
+        :param num: Number of nodes including base and end nodes
+        :param node_type: Type of node: Base, End, Robot
+        :return:
+        """
         if node_type == "Base":
             self.type = "Base"
             self.right_neighbor = num + 1
@@ -43,17 +49,38 @@ class Node(object):
         self.z = 0  # temp for testing
         self.theta = 0  # temp for testing
         self.pos = np.array([0, 0], dtype=np.float32)  # temp for testing
-        self.__axlen = 0.43
 
-        self.kalman = Kalman.Kalman(0.5, 0, 0, 0)
-        self.controls = Controls.Controls(0, 0, 0, 0, 0, 2, 2, 0)
+        self.kalman = Kalman.Kalman()
+        self.controls = Controls.Controls()
 
     def set_kalman(self, sigma_meas, sigma_x, sigma_z):
+        """
+
+        :param sigma_meas: standard deviation of measurement noise. sqrt(2) times the gauss radius
+        (where the function has decreased by a factor exp(-1)) of the control
+        :param sigma_x: standard deviation of translational noise relative to 1 (m/s for example). sqrt(2) times
+        the gauss radius (where the function has decreased by a factor exp(-1)) of the control
+        :param sigma_z: standard deviation of rotational noise relative to 1 (rad/s for example). sqrt(2) times
+        the gauss radius (where the function has decreased by a factor exp(-1)) of the control
+        :return:
+        """
         self.kalman.set_sigma_x(sigma_x)
         self.kalman.set_sigma_z(sigma_z)
         self.kalman.set_sigma_meas(sigma_meas)
 
     def set_controls(self, x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist):
+        """
+
+        :param x_min: minimum velocity [m/s]
+        :param x_max: maximum velocity [m/s]
+        :param z_min: minimum angular velocity [rad/s]
+        :param z_max: maximum angular velocity [rad/s]
+        :param k: gradient descent coefficient (0<k<1)
+        :param t_x: time to reach target pos if as if the robot was facing its target pos
+        :param t_z: time to rotate to face target pos
+        :param ok_dist: minimum distance to target pos that will make the robot move
+        :return:
+        """
         self.controls.set_x_min(x_min)
         self.controls.set_x_max(x_max)
         self.controls.set_z_min(z_min)
@@ -64,15 +91,35 @@ class Node(object):
         self.controls.set_ok_dist(ok_dist)
 
     def set_x(self, val):
+        """
+
+        :param val: new velocity
+        :return:
+        """
         self.x = val
 
     def set_z(self, val):
+        """
+
+        :param val:  new angular velocity
+        :return:
+        """
         self.z = val
 
     def set_theta(self, val):
+        """
+
+        :param val: new orientation
+        :return:
+        """
         self.theta = val
 
     def set_pos(self, val):
+        """
+
+        :param val: new position
+        :return:
+        """
         self.pos = val
         if (self.type == "Base" or self.type == "End"):
             self.recorded_positions = val
@@ -86,30 +133,55 @@ class Node(object):
         return self.type 
 
     def get_x(self):
+        """
+
+        :return: current velocity
+        """
         return self.x
 
     def get_z(self):
+        """
+
+        :return: current angular velocity
+        """
         return self.z
 
     def get_theta(self):
+        """
+
+        :return: current orientation
+        """
         return self.theta
 
-    def get_axlen(self):
-        return self.__axlen
-
     def get_pos(self):
+        """
+
+        :return: current position
+        """
         return self.pos
 
     def get_kalman(self):
+        """
+
+        :return: the instance of Kalman associated with this node
+        """
         return self.kalman
 
     def get_controls(self):
+        """
+
+        :return: the instance of Controls associated with this node
+        """
         return self.controls
 
     def measure_coordinates(self):
+        """
+
+        :return: measured position if the node
+        """
         # Perhaps not empty, returns weirds
         tmp_pos = np.empty([], dtype=np.float32)
-        if ((self.type == "Base") or (self.type == "End")):
+        if self.type == "Base" or self.type == "End":
             tmp_pos = self.pos
         else:
             srv = 'get_coord' + str(self.node)
@@ -127,22 +199,46 @@ class Node(object):
         return tmp_pos
 
     def get_recorded_positions(self):
+        """
+
+        :return:
+        """
         return self.recorded_positions
 
     def get_recorded_x_positions(self):
+        """
+
+        :return:
+        """
         return self.recorded_x_positions
 
     def get_recorded_y_positions(self):
+        """
+
+        :return:
+        """
         return self.recorded_y_positions
 
     def get_left_neighbor(self):
+        """
+
+        :return:
+        """
         return self.left_neighbor
 
     def get_right_neighbor(self):
+        """
+
+        :return:
+        """
         return self.right_neighbor
 
     def drive_forward(self, length):
+        """
 
+        :param length:
+        :return:
+        """
         srv = '/moveRobot' + str(self.node)
         rospy.wait_for_service(srv)
         mv_robot = rospy.ServiceProxy(srv, MoveRobot)
@@ -152,6 +248,11 @@ class Node(object):
             print("Service did not process request: " + str(exc))
 
     def rotate(self, angle):
+        """
+
+        :param angle:
+        :return:
+        """
         srv = '/rotateRobot' + str(self.node)
         rospy.wait_for_service(srv)
         mv_robot = rospy.ServiceProxy(srv, RotateRobot)
@@ -161,6 +262,10 @@ class Node(object):
             print("Service did not process request: " + str(exc))
 
     def update_twist(self):
+        """
+
+        :return:
+        """
         if self.type != "Robot":
             print "Cannot publish twist messages to", str(self.type)
         else:
