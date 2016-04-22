@@ -1,7 +1,6 @@
 PKG = 'numpy'
 import numpy as np
-import rcmGetConfig
-import rcmSetConfig
+import ConfigHandler
 import socket
 
 
@@ -10,19 +9,23 @@ class ConnectionRequest(object):
     def __init__(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.req_ip = None
-        self.config = None
+        self._port = 21210
+        self.config_handler = ConfigHandler.ConfigHandler()
 
-    def set_req_ip(self, val):
-        if val[0:10] == '192.168.1.':
-            self.req_ip = val
-        else:
-            print 'Invalid IP'
+    def set__rcm_ip(self, val):
+        self.req_ip = '192.168.1.'+str(val)
 
     def get_socket(self):
         return self.s
 
-    def get_req_ip(self):
+    def get_rcm_ip(self):
         return self.req_ip
+
+    def get_port(self):
+        return self._port
+
+    def get_config_handler(self):
+        return self.config_handler
 
     def connect_req(self, do_print):
         """
@@ -32,23 +35,22 @@ class ConnectionRequest(object):
         :return: The socket that has been created and the ip of the RCM that has been constructed from its id.
         """
 
-        while self.config is None:
-            self.s, self.config = rcmGetConfig.getConf(self.req_ip)
+        self.config_handler.get_configuration(self.s, self.req_ip, self._port)
 
         """
         Uncomment this to change configuration parameters.
         Leave commented to accept the defaults from the radio
         """
-        # config[2] = 7  # config.pii  # This must match the responder
-        # config[4] = 6  # config.codeChnl  # This must match the responder
-        # config[8] = 10;  # config.txPwr
-        self.config[7] = np.array([1], dtype=np.uint16)  # configFlags, make sure scan data is set (not default)
-        self.config[12] = np.array([0], dtype=np.uint8)  # configPersistFlag, Don't change this in flash
+        # self.config_handler.config.pii = np.array([7], dtype=np.uint16)  # This must match the responder
+        # self.config_handler.config.code_chnl = np.array([6], dtype=np.uint8)  # This must match the responder
+        # self.config_handler.config.tx_pwr = np.array([10], dtype=np.uint8)
+        self.config_handler.config.flags = np.array([1], dtype=np.uint16)  # make sure scan data is set (not default)
+        self.config_handler.config.persist_flag = np.array([0], dtype=np.uint8)  # Don't change this in flash
 
-        rcmSetConfig.setConf(self.s, self.req_ip, self.config)
+        self.config_handler.set_conf(self.s, self.req_ip, self._port)
         if do_print:
-            print self.config
-        return self.s, self.req_ip
+            print self.config_handler.config
+        return
 
     def dc_req(self, do_print):
         """
