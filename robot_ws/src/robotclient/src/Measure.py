@@ -33,7 +33,7 @@ class Measure(object):
         self.tol[1] = np.abs(rel_tol)
 
     def set_ip(self, val):
-        self.connect_request.set__rcm_ip(val)
+        self.connect_request.set_ip(val)
 
     def set_anchor(self, anchor_id, ip, x, y):
         anchor_id = np.abs(np.int(anchor_id))
@@ -68,11 +68,11 @@ class Measure(object):
         if status == -1:
             print 'Could not connect to the UWB radio'
             self.connect_request.dc_req(0)  # close the socket
-            return
+            return np.array([0, 0, -1], dtype=np.uint32)
         # Params: UWB-transceiver ip and coordinates for each transceiver.
         pos = self.connect_request.run_loc_rob(self.anchors, self.nbr_of_measurements, self.tol, False)
         if pos is None or np.size(pos) != 2:
-            pos = np.array([0, 0, -1])
+            pos = np.array([0, 0, -1], dtype=np.uint32)
         pos_np = np.array(pos, dtype=np.float32)
 
         #f = Floats()

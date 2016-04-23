@@ -29,8 +29,9 @@ def locate_robot(anchors, robot_anchor_dist, max_tol, plot):
     :return: Matrix containing x and y coordinates of the robots
     """
     anchors_pos = get_anchor_pos(anchors)
-    if anchors_pos[0] == 1337:
-        return anchors_pos
+    for i in range(0, np.size(anchors_pos, axis=1)):
+        if anchors_pos[0, i] == 1337:
+            return anchors_pos
     anchor_pos_x = np.array([anchors_pos[0, :]]).T  # creates a column vector of node's x-pos
     anchor_pos_y = np.array([anchors_pos[1, :]]).T  # creates a column vector of node's y-pos
     # creates a starting point ([x0;y0]) for the steepest descent to work with for all positions
