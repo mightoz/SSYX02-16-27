@@ -74,9 +74,7 @@ class Measure(object):
             return
         # Params: UWB-transceiver ip and coordinates for each transceiver.
         pos = self.connect_request.run_loc_rob(self.anchors, self.nbr_of_measurements, self.tol, False)
-        if pos is None:
-            pos = np.array([0, 0, -1])
-        if np.size(pos) != 2:
+        if pos is None or np.size(pos) != 2:
             pos = np.array([0, 0, -1])
         pos_np = np.array(pos, dtype=np.float32)
 
