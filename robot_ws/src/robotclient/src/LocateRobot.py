@@ -13,7 +13,7 @@ def get_anchor_pos(anchors):
             anchor_pos[:, i] = anchors[i].get_pos()
         else:
             print 'Anchor %s has no position set' % i
-            return
+            return np.array([1337, 1337])
     return anchor_pos
 
 
@@ -29,14 +29,16 @@ def locate_robot(anchors, robot_anchor_dist, max_tol, plot):
     :return: Matrix containing x and y coordinates of the robots
     """
     anchors_pos = get_anchor_pos(anchors)
+    if anchors_pos[0] == 1337:
+        return anchors_pos
     anchor_pos_x = np.array([anchors_pos[0, :]]).T  # creates a column vector of node's x-pos
     anchor_pos_y = np.array([anchors_pos[1, :]]).T  # creates a column vector of node's y-pos
     # creates a starting point ([x0;y0]) for the steepest descent to work with for all positions
     robot_pos = np.concatenate([npm.repmat(np.mean(anchor_pos_x), 1, np.size(robot_anchor_dist[0, :])),
                                 npm.repmat(np.mean(anchor_pos_y), 1, np.size(robot_anchor_dist[0, :]))])
 
-    residual = npm.repmat(100, 1, np.size(robot_anchor_dist[0, :]))  # residual from least square method
-    last_residual = npm.repmat(0, 1, np.size(robot_anchor_dist[0, :]))  # residual from least square method
+    residual = npm.repmat(np.array([100]), 1, np.size(robot_anchor_dist[0, :]))  # residual from least square method
+    last_residual = npm.repmat(np.array([0]), 1, np.size(robot_anchor_dist[0, :]))  # residual from least square method
 
     while np.abs(npl.norm(residual)-npl.norm(last_residual)) > (max_tol[1] * len(residual)):
         last_residual = residual

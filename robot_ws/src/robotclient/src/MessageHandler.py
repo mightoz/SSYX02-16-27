@@ -1,200 +1,126 @@
-#!/usr/bin/env python
 PKG = 'numpy'
 import numpy as np
-import socket
-import Config
-import MiscFunctions as Mf
+import UWBHandler
+import LocateRobot
 
 
-def send_rcv(s, ip, port, msg, packet_length, timeout):
-    """
-
-    :param s: connection socket
-    :param ip: UWB ethernet ip addr
-    :param port: connection port
-    :param msg: msg to send
-    :param packet_length: packet size in bytes
-    :param timeout: timeout time in seconds
-    :return: received message
-    """
-    try:
-        s.sendto(msg, (ip, port))
-        s.settimeout(timeout)
-        msg, msg_addr = s.recvfrom(packet_length)
-    except socket.timeout:
-        print 'connection timed out after %s seconds' % timeout
-    if msg is not None:
-        return bytearray(msg)
-    else:
-        return
-
-
-def req_range(s, requester_ip, port, msg_id, responder_id):
-    """
-
-    :param s: The socket that is used to communicate between the computer and the RCM connected via ethernet cable.
-    :param requester_ip: The IP of the RCM whose configuration is sought to set.
-    :param port: connection port
-    :param msg_id: ID of the message to send to the RCM. The id will decide what type of measurement
-    the RCM will perform.
-    :param responder_id: The id of the node to which measurements will be done.
-    :return: The status of the request and the confirmed message id from the RCM. This message should be the same
-    as the one you sent it to make sure you received what you want.
-    """
-
-    status = np.array([0xFFFFFFFF], dtype=np.uint32)  # return variable 1
-    msg_id_confirm = np.empty(0, dtype=np.uint32)  # return variable 2
-
-    msg_type = np.array([int('0003', 16)], dtype=np.uint16)  # rcm_send_range_request message type.
-    msg_id = np.array([msg_id], dtype=np.uint16)
-    resp_id = np.array([responder_id], dtype=np.uint32)
-    ant_mode = np.array([0], dtype=np.uint8)
-    reserved = np.array([0], dtype=np.uint8)
-    data_size = np.array([0], dtype=np.uint16)
-    data = np.empty(0, dtype=np.uint8)
-
-    rcm_send_range_request = np.concatenate([Mf.typecast(Mf.swap_bytes_16(msg_type), 8),
-                                             Mf.typecast(Mf.swap_bytes_16(msg_id), 8),
-                                             Mf.typecast(Mf.swap_bytes_32(resp_id), 8),
-                                             ant_mode, reserved,
-                                             Mf.typecast(Mf.swap_bytes_16(data_size), 8),
-                                             data])
-    rcm_send_range_request.dtype = np.uint8
-    rcm_send_range_request = bytearray(rcm_send_range_request)
-    # send data
-    msg = send_rcv(s, requester_ip, port, rcm_send_range_request, 8, 0.3)
-    # processing message
-    if msg is not None:
-        msg_type = Mf.typecast(np.array([msg[1], msg[0]], dtype=np.uint8), 16)
-        if msg_type != np.array([int('0103', 16)], dtype=np.uint16):
-            print 'Message type %s does not match RCM_SEND_RANGE_CONFIRM. ' % msg_type
-            status = np.array([1], dtype=np.uint32)
-            # msg_id_confirm remains empty uint32
-        else:
-            msg_id_confirm = Mf.typecast(np.array([msg[3], msg[2]], dtype=np.uint8), 16)
-            status = Mf.typecast(np.array([msg[7], msg[6], msg[5], msg[4]], dtype=np.uint8), 32)
-    return status, msg_id_confirm
-
-
-def rcm_minimal_range_info(s):
-    """
-
-    :param s: The socket that is used to communicate between the computer and the RCM connected via ethernet cable.
-    :return: The status of the measurement and the measured distance between the RCM and the node. This distance is
-    given in millimeters.
-    """
-    range_info_status = np.zeros(1, dtype=np.uint8)
-    range_info_fre = np.zeros(1, dtype=np.double)
-
-    timeout = 0.5  # s
-    packet_length = 2048  # Largest expected UDP packet (bytes)
-
-    rng_info_rcvd = False
-    msg = bytearray()
-    while not rng_info_rcvd:  # this MUST be here or error msg_id 513 will occur
-        try:
-            s.settimeout(timeout)
-            msg, msg_addr = s.recvfrom(packet_length)
-        except socket.timeout:
-            print 'connection timed out after %s seconds' % timeout
-        msg = bytearray(msg)  # Unpack string to byte array
-        msg_type = np.array([msg[1], msg[0]], dtype=np.uint8)
-        msg_type.dtype = np.uint16
-        if msg_type == np.array([int('0201', 16)], dtype=np.uint16):
-            range_info_status[0] = msg[8]  # rangeInfo.status
-            tmp0 = np.array([msg[23], msg[22], msg[21], msg[20]], dtype=np.uint8)
-            tmp0.dtype = np.uint32
-            range_info_fre[0] = np.double(tmp0)  # rangeInfo.fre
-            rng_info_rcvd = True
-
-    return range_info_status, range_info_fre
-
-
-class ConfigHandler(object):
+class MessageHandler(object):
 
     def __init__(self):
-        self.config = Config.Config()
+        self.uwb_handler = UWBHandler.UWBHandler()
 
-    def get_config_msg(self):
-        return self.config
+    def set_ip(self, val):
+        self.uwb_handler.set__rcm_ip(val)
 
-    def get_configuration(self, s, ip, port):
+    def get_config_handler(self):
+        return self.uwb_handler
+
+    def connect_req(self, do_print):
         """
 
-        :param s: connection socket
-        :param ip: rcm ethernet ip
-        :param port: connection port
-        :return:
+        :param do_print: The config will be printed if do_print is 1. It will not be printed if it is 0.
+        :return: The socket that has been created and the ip of the RCM that has been constructed from its id.
         """
-        # Creating the message
-        msg_type = np.array([int('0002', 16)], dtype=np.uint16)
-        msg_id = np.array([int('0000', 16)], dtype=np.uint16)
-        rcm_get_config_request = Mf.typecast(np.array([Mf.swap_bytes_16(msg_type[0]),
-                                                       Mf.swap_bytes_16(msg_id[0])], dtype=np.uint16), 8)
-        rcm_get_config_request = bytearray(rcm_get_config_request)
-        # send data
-        msg = send_rcv(s, ip, port, rcm_get_config_request, 32, 0.2)
-        # Processing message
-        if msg is not None:
-            msg_type = Mf.typecast(np.array([msg[1], msg[0]], dtype=np.uint8), 16)
-            if msg_type != np.array([0x0102], dtype=np.uint16):
-                print 'Message type %s does not match RCM_GET_CONFIG_CONFIRM.' % msg_type
-                return -1
-            else:
-                self.config.msg_id = Mf.typecast(np.array([msg[3], msg[2]], dtype=np.uint8), 16)
-                self.config.node_id = Mf.typecast(np.array([msg[7], msg[6], msg[5], msg[4]], dtype=np.uint8), 32)
-                self.config.pii = Mf.typecast(np.array([msg[9], msg[8]], dtype=np.uint8), 16)
-                self.config.ant_mode = np.array([msg[10]], dtype=np.uint8)
-                self.config.code_chnl = np.array([msg[11]], dtype=np.uint8)
-                self.config.ant_dly_a = Mf.typecast(np.array([msg[15], msg[14], msg[13], msg[12]], dtype=np.uint8), 32)
-                self.config.ant_dly_b = Mf.typecast(np.array([msg[19], msg[18], msg[17], msg[16]], dtype=np.uint8), 32)
-                self.config.flags = Mf.typecast(np.array([msg[21], msg[20]], dtype=np.uint8), 16)
-                self.config.tx_pwr = np.array([msg[22]], dtype=np.uint8)
-                self.config.unused = np.array([msg[23]], dtype=np.uint8)
-                self.config.time_stamp = Mf.typecast(np.array([msg[27], msg[26], msg[25], msg[24]], dtype=np.uint8), 32)
-                self.config.stat = Mf.typecast(np.array([msg[31], msg[30], msg[29], msg[28]], dtype=np.uint8), 32)
-                self.config.persist_flag = np.array([0], dtype=np.uint8)
+        status = self.uwb_handler.get_configuration()
+        if status == -1:
+            return -1
+        # Uncomment this to change configuration parameters. Leave commented to accept the defaults from the radio
+        # self.uwb_handler.config.pii = np.array([7], dtype=np.uint16)  # This must match the responder
+        # self.uwb_handler.config.code_chnl = np.array([6], dtype=np.uint8)  # This must match the responder
+        # self.uwb_handler.config.tx_pwr = np.array([10], dtype=np.uint8)
+        self.uwb_handler.config.flags = np.array([1], dtype=np.uint16)  # make sure scan data is set (not default)
+        self.uwb_handler.config.persist_flag = np.array([0], dtype=np.uint8)  # Don't change this in flash
+        status = self.uwb_handler.set_conf()
+        if status == -1:
+            return -1
+        if do_print:
+            print self.uwb_handler.config
         return
 
-    def set_conf(self, s, ip, port):
+    def meas_range(self, responder_id, do_print):
         """
 
-        :param s: The socket that is used to communicate between the computer and the RCM connected via ethernet cable.
-        :param ip: The IP of the RCM whose configuration is sought to set.
-        :param port: connection port
-        :return: the status of the response from the RCM.
+        :param responder_id: The id of the node which distance to the RCM is sought.
+        :param do_print: Not used at this moment. In the future this variable may be used to decide whether
+        or not some technical information about the measuring process should be printed
+        :return: The measured range between the node and the robot.
         """
-        msg_type = Mf.swap_bytes_16(np.array([int('0001', 16)], dtype=np.uint16))  # rcm_set_config_request msg type.
-        msg_id = Mf.swap_bytes_16(np.array([int('0003', 16)], dtype=np.uint16))
-        node_id = Mf.swap_bytes_32(self.config.node_id)
-        pii = Mf.swap_bytes_16(self.config.pii)
-        ant_mode = self.config.ant_mode
-        code = self.config.code_chnl
-        ant_delay_a = Mf.swap_bytes_32(self.config.ant_dly_a)
-        ant_delay_b = Mf.swap_bytes_32(self.config.ant_dly_b)
-        flags = Mf.swap_bytes_16(self.config.flags)
-        tx_gain = self.config.tx_pwr
-        persist = self.config.persist_flag
+        msg_id = 0
+        attempt = 0
+        success = 0
+        calc_range = 0
+        while success < 1:
+            msg_id = (msg_id + 1) % (0xffff+1)  # contains info about how many times the range have been requested.
+            # checks if the RCM is ready to transmit the measured range.
+            try:
+                status, msg_id_cfrm = self.uwb_handler.req_range(msg_id, responder_id)
+            except TypeError:
+                print 'RCMSendRangeRequest.req_range returned a NoneType value'
+                return
+            attempt += 1
+            if status[0] == 0:
+                # receive information about the measured range and if it was successful.
+                try:
+                    range_info_status, range_info_fre = self.uwb_handler.rcm_minimal_range_info()
+                except TypeError:
+                    print 'RCMSendRangeRequest.rcm_minimal_range_info returned a NoneType value'
+                    return
+                if range_info_status[0] == 0:  # successful measurement
+                    success = 1
+                    calc_range = range_info_fre[0]/1000.0
+                elif range_info_status[0] == 1 and do_print:
+                    print 'range timeout\n'
+                elif range_info_status[0] == 2:
+                    print 'LED failure\n'
+                elif range_info_status[0] == 9:
+                    print 'UDP failure on InfoReceive\n'
+                else:
+                    print 'UDP failure on InfoReceive\n'
 
-        rcm_set_config_request = \
-            np.concatenate([Mf.typecast(np.array([msg_type[0], msg_id[0]], dtype=np.uint16), 8),
-                            Mf.typecast(np.array([node_id[0]], dtype=np.uint32), 8),
-                            Mf.typecast(np.array([pii[0]], dtype=np.uint16), 8),
-                            ant_mode, code,
-                            Mf.typecast(np.array([ant_delay_a[0], ant_delay_b[0]], dtype=np.uint32), 8),
-                            Mf.typecast(np.array([flags[0]], dtype=np.uint16), 8),
-                            tx_gain, persist])
-        rcm_set_config_request.dtype = np.uint8
-        rcm_set_config_request = bytearray(rcm_set_config_request)
-        # send data
-        msg = send_rcv(s, ip, port, rcm_set_config_request, 8, 0.4)
-        # processing response
-        if msg is not None:
-            msg_type = Mf.typecast(np.array([msg[1], msg[0]], dtype=np.uint8), 16)
-            if msg_type != np.array([int('0101', 16)], dtype=np.uint16):
-                print 'Message type %s does not match RCM_SET_CONFIG_CONFIRM. ' % msg_type
-            else:
-                # msg_id in confirm should be equal to msg_id in request
-                msg_id = Mf.typecast(np.array([msg[3], msg[2]], dtype=np.uint8), 16)
-                status = Mf.typecast(np.array([msg[7], msg[6], msg[5], msg[4]], dtype=np.uint8), 32)
-        return msg_id
+            if attempt > 10:
+                print 'Error in measuring range'
+                return
+
+        return calc_range
+
+    def run_loc_rob(self, anchors, nbr_of_success_readings, max_tol, do_print):
+        """
+
+        :param anchors: A list oftThe instances of the Anchor class used
+        :param nbr_of_success_readings: The number of successful range measurement to each of the nodes.
+        Three nodes and four success readings would produce 12 measurements in total.
+        :param max_tol: A list of maximum average residual in position as well as maximum average difference between
+        last residual in position and current residual that the user is satisfied with.
+        :param do_print: 1 to output information about the measuring process, 0 to don't output any information. This
+        parameter controls whether or not to plot circles around the nodes with the radius being the measured
+        distances to the robots.
+        :return: A matrix containing the positions of the robots. The first row contains the x-coordinates of the robots
+        and the second row contains the y-coordinates of the robots.
+        """
+
+        # instantiate the row vector (N-by-1 matrix) that will hold the measured distance to the nodes.
+        # The order that these distances will be in corresponds to the order of the anchors parameter.
+        distance = np.zeros((np.size(anchors), 1), dtype=np.float)
+        for i in range(0, nbr_of_success_readings):
+            for j in range(0, np.size(anchors)):
+                if anchors[j].get_ip() is not None:
+                    dist = self.meas_range(anchors[j].get_ip(), do_print)  # get the distance data.
+                    distance[j, 0] += dist / nbr_of_success_readings  # add the average distance.
+                else:
+                    print 'Check the ip of anchor %s' % j
+                    return
+        pos = LocateRobot.locate_robot(anchors, distance, max_tol, do_print)
+        if pos[0] == 1337:
+            return None
+        else:
+            return pos
+
+    def dc_req(self, do_print):
+        """
+
+        :param do_print: A message saying that the socket is closing if this parameter is True.
+        The message will not be printed if it is False.
+        :return:
+        """
+        self.uwb_handler.disconnect(do_print)
+        return

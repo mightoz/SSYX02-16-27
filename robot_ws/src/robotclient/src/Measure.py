@@ -8,7 +8,7 @@ import rospy
 from rospy.numpy_msg import numpy_msg
 from robotclient.msg import *
 """
-import ConnectionHandler
+import MessageHandler
 import Anchor
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,7 +19,7 @@ class Measure(object):
     def __init__(self, nbr_of_anchors):
         self.nbr_of_measurements = 1
         self.tol = [1e-6, 1e-6]
-        self.connect_request = ConnectionHandler.ConnectionRequest()
+        self.connect_request = MessageHandler.MessageHandler()
         self.nbr_of_anchors = nbr_of_anchors
         self.anchors = []
         for i in range(0, self.nbr_of_anchors):
@@ -46,9 +46,6 @@ class Measure(object):
 
     def get_tol(self):
         return self.tol
-
-    def get_ip(self):
-        return self.connect_request.get_rcm_ip()
 
     def get_anchor(self, anchor_id):
         return self.anchors[anchor_id]
