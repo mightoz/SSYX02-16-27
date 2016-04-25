@@ -12,18 +12,23 @@ import MessageHandler
 import Anchor
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 
 class Measure(object):
 
-    def __init__(self, nbr_of_anchors):
+    def __init__(self, ip):
         self.nbr_of_measurements = 1
         self.tol = [1e-6, 1e-6]
-        self.connect_request = MessageHandler.MessageHandler()
-        self.nbr_of_anchors = nbr_of_anchors
+        self.msg_handler = MessageHandler.MessageHandler()
+        self.msg_handler.set_ip(ip)
+        self.nbr_of_anchors = 3  # same as len(self.anchors)
         self.anchors = []
-        for i in range(0, self.nbr_of_anchors):
+        for j in range(0, self.nbr_of_anchors):
             self.anchors += [Anchor.Anchor()]
+        self.__set_anchor__(0, 106, -1, 1)
+        self.__set_anchor__(1, 114, 2, 0)
+        self.__set_anchor__(2, 108, 1, -2)
 
     def set_nbr_of_measurements(self, val):
         self.nbr_of_measurements = np.int(np.abs(val))
@@ -31,15 +36,6 @@ class Measure(object):
     def set_tol(self, abs_tol, rel_tol):
         self.tol[0] = np.abs(abs_tol)
         self.tol[1] = np.abs(rel_tol)
-
-    def set_ip(self, val):
-        self.connect_request.set_ip(val)
-
-    def set_anchor(self, anchor_id, ip, x, y):
-        anchor_id = np.abs(np.int(anchor_id))
-        if 0 <= anchor_id < self.nbr_of_anchors:
-            self.anchors[anchor_id].set_ip(ip)
-            self.anchors[anchor_id].set_pos(x, y)
 
     def get_nbr_of_measurements(self):
         return self.nbr_of_measurements
@@ -62,15 +58,11 @@ class Measure(object):
             pub.publish(a)
             r.sleep()
     """
+
     # Runs scripts to retrieve coordinates for robot.
     def main(self):
-        status = self.connect_request.connect_req(0)  # connect to the RCM that is connected via ethernet cable
-        if status == -1:
-            print 'Could not connect to the UWB radio'
-            self.connect_request.dc_req(0)  # close the socket
-            return np.array([0, 0, -1], dtype=np.uint32)
         # Params: UWB-transceiver ip and coordinates for each transceiver.
-        pos = self.connect_request.run_loc_rob(self.anchors, self.nbr_of_measurements, self.tol, False)
+        pos = self.msg_handler.run_loc_rob(self.anchors, self.nbr_of_measurements, self.tol, False)
         if pos is None or np.size(pos) != 2:
             pos = np.array([0, 0, -1], dtype=np.uint32)
         pos_np = np.array(pos, dtype=np.float32)
@@ -78,19 +70,34 @@ class Measure(object):
         #f = Floats()
         #f.data = pos_np
 
-        self.connect_request.dc_req(0)  # close th socket
         return pos_np
         #return f
+
+    def __open_sock__(self):
+        status = self.msg_handler.connect_req(0)  # connect to the RCM that is connected via ethernet cable
+        if status == -1:
+            print 'Could not connect to the UWB radio'
+            self.__close_sock__()  # close the socket
+            return np.array([0, 0, -1], dtype=np.uint32)
+
+    def __close_sock__(self):
+        self.msg_handler.dc_req(0)  # close the socket
+
+    def __set_anchor__(self, anchor_id, ip, x, y):
+        anchor_id = np.abs(np.int(anchor_id))
+        if 0 <= anchor_id < self.nbr_of_anchors:
+            self.anchors[anchor_id].set_ip(ip)
+            self.anchors[anchor_id].set_pos(x, y)
 
 """
 if __name__ == '__main__':
     Measure.talker()
 """
-runner = Measure(3)
-runner.set_ip(101)
-runner.set_anchor(0, 106, -1, 1)
-runner.set_anchor(1, 114, 2, 0)
-runner.set_anchor(2, 108, 1, -2)
+runner = Measure(101)
 runner.set_nbr_of_measurements(1)
-print runner.main()
+runner.__open_sock__()
+for i in range(0, 10):
+    print runner.main()
+    time.sleep(1)
+runner.__close_sock__()
 plt.show()

@@ -6,29 +6,6 @@ import Config
 import MiscFunctions as Mf
 
 
-def send_rcv(s, ip, port, msg, packet_length, timeout):
-    """
-
-    :param s: connection socket
-    :param ip: UWB ethernet ip addr
-    :param port: connection port
-    :param msg: msg to send
-    :param packet_length: packet size in bytes
-    :param timeout: timeout time in seconds
-    :return: received message
-    """
-    try:
-        s.sendto(msg, (ip, port))
-        s.settimeout(timeout)
-        msg, msg_addr = s.recvfrom(packet_length)
-    except socket.timeout:
-        print 'connection timed out after %s seconds' % timeout
-    if msg is not None:
-        return bytearray(msg)
-    else:
-        return
-
-
 class UWBHandler(object):
 
     def __init__(self):
@@ -52,6 +29,25 @@ class UWBHandler(object):
     def get_config_msg(self):
         return self.config
 
+    def send_rcv(self, msg, packet_length, timeout):
+        """
+
+        :param msg: msg to send
+        :param packet_length: packet size in bytes
+        :param timeout: timeout time in seconds
+        :return: received message
+        """
+        try:
+            self.s.sendto(msg, (self.req_ip, self._port))
+            self.s.settimeout(timeout)
+            msg, msg_addr = self.s.recvfrom(packet_length)
+        except socket.timeout:
+            print 'connection timed out after %s seconds' % timeout
+        if msg is not None:
+            return bytearray(msg)
+        else:
+            return
+
     def get_configuration(self):
         """
 
@@ -65,7 +61,7 @@ class UWBHandler(object):
         rcm_get_config_request = bytearray(rcm_get_config_request)
         # send data
         if self.req_ip is not None:
-            msg = send_rcv(self.s, self.req_ip, self._port, rcm_get_config_request, 32, 0.2)
+            msg = self.send_rcv(rcm_get_config_request, 32, 0.2)
         else:
             print 'UWB radio has no ip set'
             return -1
@@ -124,7 +120,7 @@ class UWBHandler(object):
         rcm_set_config_request = bytearray(rcm_set_config_request)
         # send data
         if self.req_ip is not None:
-            msg = send_rcv(self.s, self.req_ip, self._port, rcm_set_config_request, 8, 0.4)
+            msg = self.send_rcv(rcm_set_config_request, 8, 0.4)
         else:
             print 'Unable to parse config, check your connection with the UWB'
             return -1
@@ -170,7 +166,7 @@ class UWBHandler(object):
         rcm_send_range_request = bytearray(rcm_send_range_request)
         # send data
         if self.req_ip is not None:
-            msg = send_rcv(self.s, self.req_ip, self._port, rcm_send_range_request, 8, 0.3)
+            msg = self.send_rcv(rcm_send_range_request, 8, 0.3)
         else:
             print 'Unable to parse config, check your connection with the UWB'
             return -1

@@ -56,7 +56,7 @@ class MessageHandler(object):
                 status, msg_id_cfrm = self.uwb_handler.req_range(msg_id, responder_id)
             except TypeError:
                 print 'RCMSendRangeRequest.req_range returned a NoneType value'
-                return
+                return -1
             attempt += 1
             if status[0] == 0:
                 # receive information about the measured range and if it was successful.
@@ -64,7 +64,7 @@ class MessageHandler(object):
                     range_info_status, range_info_fre = self.uwb_handler.rcm_minimal_range_info()
                 except TypeError:
                     print 'RCMSendRangeRequest.rcm_minimal_range_info returned a NoneType value'
-                    return
+                    return -1
                 if range_info_status[0] == 0:  # successful measurement
                     success = 1
                     calc_range = range_info_fre[0]/1000.0
@@ -79,7 +79,7 @@ class MessageHandler(object):
 
             if attempt > 10:
                 print 'Error in measuring range'
-                return
+                return -1
 
         return calc_range
 
@@ -105,7 +105,10 @@ class MessageHandler(object):
             for j in range(0, np.size(anchors)):
                 if anchors[j].get_ip() is not None:
                     dist = self.meas_range(anchors[j].get_ip(), do_print)  # get the distance data.
-                    distance[j, 0] += dist / nbr_of_success_readings  # add the average distance.
+                    if dist != -1:
+                        distance[j, 0] += dist / nbr_of_success_readings  # add the average distance.
+                    else:
+                        return
                 else:
                     print 'Check the ip of anchor %s' % j
                     return
