@@ -68,7 +68,7 @@ class MessageHandler(object):
                 if range_info_status[0] == 0:  # successful measurement
                     success = 1
                     calc_range = range_info_fre[0]/1000.0
-                elif range_info_status[0] == 1 and do_print:
+                elif range_info_status[0] == 1:
                     print 'range timeout\n'
                 elif range_info_status[0] == 2:
                     print 'LED failure\n'
