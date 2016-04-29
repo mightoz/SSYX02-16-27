@@ -14,6 +14,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import Node
+import time
 
 from robotclient.srv import *
 from masterclient.srv import *
@@ -80,9 +81,16 @@ class MainController():
             rospy.wait_for_service(srv)
             get_coords = rospy.ServiceProxy(srv, GetCoord)
             try:
-                f = Floats()
-                f = get_coords(1)
-                first_pos = np.array(f.data.data, dtype=np.float32)
+                errorpos = True
+                while errorpos:
+                    f = Floats()
+                    f = get_coords(1)
+                    first_pos = np.array(f.data.data, dtype=np.float32)
+                    if len(first_pos) == 2:
+                        errorpos = False
+                    else:
+                        time.sleep(0.5)
+                        print "Failed to get inital position for robot:", i
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))
             srv = '/moveRobot' + str(i)
@@ -96,11 +104,17 @@ class MainController():
             srv = 'get_coord' + str(i)
             rospy.wait_for_service(srv)
             get_coords = rospy.ServiceProxy(srv, GetCoord)
-
             try:
-                f = Floats()
-                f = get_coords(1)
-                second_pos = np.array(f.data.data, dtype=np.float32)
+                errorpos = True
+                while errorpos:
+                    f = Floats()
+                    f = get_coords(1)
+                    second_pos = np.array(f.data.data, dtype=np.float32)
+                    if len(second_pos) == 2:
+                        errorpos = False
+                    else:
+                        time.sleep(0.5)
+                        print "Failed to get inital position for robot:", i
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))
             self.nodes[i].set_pos(second_pos)
@@ -116,7 +130,7 @@ class MainController():
                 self.nodes[i].set_theta(2*np.pi-phi)
             print self.nodes[i].get_theta()*180/np.pi
            #End of initation
-
+ 
         initend = np.array([0,-2], dtype=np.float32)
         initbase = np.array([0,3], dtype=np.float32)
         self.nodes[0].set_pos(initend)
@@ -142,6 +156,8 @@ class MainController():
         return IteratorResponse(1)
 
     def align_robots_1(self):
+        #####TODOODOOOOO#############
+        #FIX SLEEP FOR MEASURE IN ALIGN1.0
         # Choose number of self.nodes
         """number_of_nodes = 4
         for i in range(0, number_of_nodes):
@@ -165,7 +181,6 @@ class MainController():
                 # TODO: ONLY CHECK AND THEN MOVE.
 
     def align_robots_2(self):
-        print "mainfunciton"
         corr_idx = 1+ np.mod(self.calls, self.nbr_of_nodes - 2)  # Decide which robot should correct its position
         #corr_idx = 2 #TEST FOR DEBUGGING TIMING WITHOUT WEEIRD ASS MEASURE       
         for i in range(1, self.nbr_of_nodes - 1):  # Calculate/Estimate new state
@@ -181,7 +196,7 @@ class MainController():
                 # meas_pos = 2*np.random.rand(2)-1
                 meas_pos = np.empty(2)
                 meas_pos = np.array(self.nodes[i].measure_coordinates(), dtype=np.float32)
-                if (np.size(meas_pos) < 2):
+                if (np.size(meas_pos) != 2):
                     x2, v2 = self.nodes[i].get_kalman().predict(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
                                                             self.nodes[i].get_x(), self.nodes[i].get_z(),
                                                             self.dt)
@@ -198,8 +213,7 @@ class MainController():
         for i in range(1, self.nbr_of_nodes - 1):  # Calculate new controls at time k
             x3, v3 = self.nodes[i].get_controls().calc_controls(self.nodes[i].get_theta(), self.nodes[i].get_pos(),
                                                                 self.nodes[self.nodes[i].get_left_neighbor()].get_pos(),
-                                                                self.nodes[self.nodes[i].get_right_neighbor()].get_pos(),
-                                                                self.nodes[i].get_axlen())
+                                                                self.nodes[self.nodes[i].get_right_neighbor()].get_pos()) #self.nodes[i].get_axlen()
             self.nodes[i].set_x(x3)
             self.nodes[i].set_z(v3)
             print i
