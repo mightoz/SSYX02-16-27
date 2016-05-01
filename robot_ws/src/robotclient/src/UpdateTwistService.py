@@ -13,8 +13,9 @@ import numpy as np
 
 def handle_update_twist(data):
     ack = 0
-    x = data.data[0]
-    z = data.data[1]
+    inpt = np.array(data.data.data, dtype=np.float32)
+    x = inpt[0]
+    z = inpt[1]
 
     twist = Twist()
 
