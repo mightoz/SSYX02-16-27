@@ -12,14 +12,17 @@ from rospy.numpy_msg import numpy_msg
 runner = None
 def handle_get_coord(req):
     global runner
+    runner = Measure.Measure(rospy.get_param(rospy.get_name()+'/ip_of_uwb'))  # IP of UWB tranciver on ROBOT
+    runner.__open_sock__()
     pos = runner.main()
+    runner.__close_sock__()
     return GetCoordResponse(pos)
 
 def get_coord_server():
     rospy.init_node('get_coord_server')
     global runner
-    runner = Measure.Measure(rospy.get_param(rospy.get_name()+'/ip_of_uwb'))  # IP of UWB tranciver on ROBOT
-    runner.__open_sock__()
+   # runner = Measure.Measure(rospy.get_param(rospy.get_name()+'/ip_of_uwb'))  # IP of UWB tranciver on ROBOT
+    #runner.__open_sock__()
     s = rospy.Service('get_coord', GetCoord, handle_get_coord)
     print "Ready to Get Coords!"
     rospy.spin()
