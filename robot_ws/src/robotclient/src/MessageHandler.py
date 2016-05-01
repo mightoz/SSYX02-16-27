@@ -56,7 +56,7 @@ class MessageHandler(object):
                 status, msg_id_cfrm = self.uwb_handler.req_range(msg_id, responder_id)
             except TypeError:
                 print 'RCMSendRangeRequest.req_range returned a NoneType value'
-                return -1
+  
             attempt += 1
             if status[0] == 0:
                 # receive information about the measured range and if it was successful.
@@ -64,11 +64,11 @@ class MessageHandler(object):
                     range_info_status, range_info_fre = self.uwb_handler.rcm_minimal_range_info()
                 except TypeError:
                     print 'RCMSendRangeRequest.rcm_minimal_range_info returned a NoneType value'
-                    return -1
+
                 if range_info_status[0] == 0:  # successful measurement
                     success = 1
                     calc_range = range_info_fre[0]/1000.0
-                elif range_info_status[0] == 1 and do_print:
+                elif range_info_status[0] == 1:
                     print 'range timeout\n'
                 elif range_info_status[0] == 2:
                     print 'LED failure\n'

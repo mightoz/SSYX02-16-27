@@ -28,8 +28,8 @@ def handle_update_twist(data):
     return UpdateTwistResponse(ack)
 
 def update_twist_server():
-    rospy.init_node('update_twist_server_1')
-    s = rospy.Service('updateTwist1', UpdateTwist, handle_update_twist)
+    rospy.init_node('update_twist_server_')
+    s = rospy.Service('updateTwist', UpdateTwist, handle_update_twist)
     print rospy.get_name(), "Ready to update twist"
     rospy.spin()
 
