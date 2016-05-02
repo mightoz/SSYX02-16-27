@@ -46,8 +46,8 @@ def handle_moveRobot(req):
 
     
 def moveRobot_server():
-    rospy.init_node('moveRobot_server1')
-    s=rospy.Service('moveRobot1', MoveRobot, handle_moveRobot)
+    rospy.init_node('moveRobot_server')
+    s=rospy.Service('moveRobot', MoveRobot, handle_moveRobot)
     print rospy.get_name(), "Ready to move"
     rospy.spin()
 

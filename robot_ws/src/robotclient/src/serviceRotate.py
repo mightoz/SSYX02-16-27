@@ -17,7 +17,7 @@ import numpy as np
 def handle_rotateRobot(req):
     ack = 0 #Currently executing
     print rospy.get_name(), "Rotatating: %s"%str(req.deg)
-
+    #RosAria/cmd_vel should be changed when starting service with multiple robots
     pub = rospy.Publisher("RosAria/cmd_vel", Twist, queue_size=10)    
 
 #Sleep for 0.01s to ensure ready for rotate       
@@ -46,8 +46,9 @@ def handle_rotateRobot(req):
 
     
 def rotateRobot_server():
-    rospy.init_node('rotateRobot_server1')
-    s=rospy.Service('rotateRobot1', RotateRobot, handle_rotateRobot)
+    #rotateRobot_service & rotateRobot should be changed when starting with multiple robots
+    rospy.init_node('rotateRobot_service')
+    s=rospy.Service('rotateRobot', RotateRobot, handle_rotateRobot)
     print rospy.get_name(), "Ready to rotate"
     rospy.spin()
 
