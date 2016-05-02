@@ -166,7 +166,7 @@ class MainController():
             pass"""
 
         # Set while condition too True.
-        not_finished = True
+        #not_finished = True
         # while (not_finished):
         # Loop through all of the robots
         for i in range(1, self.nbr_of_nodes - 1):
@@ -248,8 +248,7 @@ class MainController():
         right = robot.get_right_neighbor()
         print left
         print right
-        correct_position = (self.nodes[left].measure_coordinates() + self.nodes[
-            right].measure_coordinates()) / 2  # Calculates correct position
+        correct_position = (self.nodes[left].measure_coordinates() + self.nodes[right].measure_coordinates()) / 2  # Calculates correct position
         return correct_position
 
     # Move a robot from point A to B
