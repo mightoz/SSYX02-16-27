@@ -44,7 +44,6 @@ class MainController():
 
     def __init__(self, nbr_of_nodes):
         self.calls = 0
-        rospy.init_node('robot_coordinator')
         
         # Some inital values for kalman and controls
         x_max = 0.2  # Maximum speed forwards
@@ -60,6 +59,7 @@ class MainController():
         t_z = 2  # Speed factor rotation, -||-  !=0
         ok_dist = 0.05  # Minimum distance to next targetpos, k affects this
 
+        #Instancing of robots
         self.nbr_of_nodes = nbr_of_nodes
         self.nodes = []
         for i in range(0, self.nbr_of_nodes):
@@ -71,12 +71,23 @@ class MainController():
                 self.nodes += [Node.Node(i, "Robot")]
                 self.nodes[i].set_kalman(sigma_meas, sigma_x, sigma_z)
                 self.nodes[i].set_controls(x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist)
-       
-        #Init for robot orientation and position
+
+
+        s = rospy.Service('get_coordEnd', BaseEndGetCoord, self.handle_get_end) #Service for changing End Coords
+        s = rospy.Service('get_coordBase', BaseEndGetCoord, self.handle_get_base)  #Service for changing Base Coords
+        service = rospy.Service('iterator', Iterator, self.align_robots) #Iterator service called whenever an iteration of the program is wanted
+        rospy.spin() 
+        rospy.on_shutdown(self.terminator) #On CTRL+C function call.
+
+    def callibrate(self):
+        """
+        Callibrates robots in area and updates inital position and theta accordingly
+        """
         for i in range(1, self.nbr_of_nodes-1):
             print "For loop", i
             first_pos = np.empty([], dtype=np.float32)
             second_pos = np.empty([], dtype=np.float32)
+            #Get first Position measurement
             srv = 'get_coord' + str(i)
             rospy.wait_for_service(srv)
             get_coords = rospy.ServiceProxy(srv, GetCoord)
@@ -89,10 +100,12 @@ class MainController():
                     if len(first_pos) == 2:
                         errorpos = False
                     else:
+                        #Sleep for 0.5s to ensure break for measurement with UWB
                         time.sleep(0.5)
                         print "Failed to get inital position for robot:", i
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))
+            #Move forward before second measurement
             srv = '/moveRobot' + str(i)
             rospy.wait_for_service(srv)
             mv_robot = rospy.ServiceProxy(srv, MoveRobot)
@@ -100,7 +113,7 @@ class MainController():
                 x = mv_robot(0.2)
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))
-                
+            #Get second position measurement
             srv = 'get_coord' + str(i)
             rospy.wait_for_service(srv)
             get_coords = rospy.ServiceProxy(srv, GetCoord)
@@ -117,9 +130,11 @@ class MainController():
                         print "Failed to get inital position for robot:", i
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))
+            #Update current position
             self.nodes[i].set_pos(second_pos)
             print second_pos
             print first_pos
+            #Calulate Theta
             A = second_pos - first_pos
             B = np.array([1,0], dtype=np.float32)
             if np.linalg.norm(A) >1e-40:
@@ -129,8 +144,7 @@ class MainController():
             else:
                 self.nodes[i].set_theta(2*np.pi-phi)
             print self.nodes[i].get_theta()*180/np.pi
-           #End of initation
- 
+        #Inital positions for Base and end to avoid errors 
         initend = np.array([0,-2], dtype=np.float32)
         initbase = np.array([0,3], dtype=np.float32)
         self.nodes[0].set_pos(initend)
@@ -138,21 +152,19 @@ class MainController():
         print "Inital position of base:", self.nodes[0].get_pos()
         print "Inital position of end:", self.nodes[3].get_pos()
 
-        s = rospy.Service('get_coordEnd', BaseEndGetCoord, self.handle_get_end)
-        s = rospy.Service('get_coordBase', BaseEndGetCoord, self.handle_get_base)  
-        service = rospy.Service('iterator', Iterator, self.align_robots)
-        rospy.spin()
-        rospy.on_shutdown(self.terminator)
-
     def align_robots(self, data):
         # Add update Base/End position?
-        print self.calls
-        print data.data.data
+        print "This is number of calls", self.calls
+        if self.calls == 0:
+            self.callibrate()
         if (data.data.data == "align1"):
             self.align_robots_1()
+            self.calls = self.calls + 1
         elif (data.data.data == "align2"):
             self.align_robots_2()
             self.calls = self.calls + 1
+        if self.calls > 5:
+            print "Please consider recallibration of Robots"
         return IteratorResponse(1)
 
     def align_robots_1(self):
@@ -322,9 +334,9 @@ class MainController():
 
 
 if __name__ == '__main__':
-    # print rospy.get_caller_id()
-
+    rospy.init_node('robot_coordinator')
+    nb = rospy.get_param(rospy.get_name()+'/nbr')
     try:
-        ne = MainController(4)
+        ne = MainController(nb)
     except rospy.ROSInterruptException:
         pass
