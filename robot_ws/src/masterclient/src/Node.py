@@ -157,11 +157,7 @@ class Node(object):
 
         :return: current position
         """
-        if self.type == "Base":
-            p = self.measure_coordinates()
-        else:
-            p = self.pos
-        return p
+        return self.pos
 
     def get_kalman(self):
         """

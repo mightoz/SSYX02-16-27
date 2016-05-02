@@ -151,7 +151,7 @@ class MainController():
                     errorpos = False
                 else:
                     time.sleep(0.5)
-                    print "Failed to get inital position for robot:", i
+                    print "Failed to get inital position for robot:", Base
         except rospy.ServiceException as exc:
             print("Service did not process request: " + str(exc))
         self.nodes[0].set_pos(base_pos)
@@ -172,6 +172,8 @@ class MainController():
         elif (data.data.data == "align2"):
             self.align_robots_2()
             self.calls = self.calls + 1
+            if self.nodes[i].get_type == "Base":
+                self.nodes[i].set_pos(self.nodes[i].measure_coordinates()) #Update position of base
         return IteratorResponse(1)
 
     def align_robots_1(self):
@@ -214,7 +216,7 @@ class MainController():
                                                                 self.dt)
                 self.nodes[i].set_theta(v2)
                 self.nodes[i].set_pos(np.array([x2[0, 0], x2[2, 0]]))
-                    print "Robot %s corrects" % i
+                print "Robot %s corrects" % i
     
     
         for i in range(1, self.nbr_of_nodes - 1):  # Calculate new controls at time k
