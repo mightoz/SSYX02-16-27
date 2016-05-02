@@ -60,7 +60,7 @@ class Kalman(object):
         :return: A prediction of the current position based on the control input and last position position
         """
         time_step = np.abs(time_step)
-        if z > 1e-40:
+        if np.abs(z) > 1e-40:
             x_k_k1 = np.array([[pos[0]+(np.sin(theta+z*time_step)-np.sin(theta))*x/z],
                                [x*np.cos(theta)],
                                [pos[1]+(np.cos(theta)-np.cos(theta+z*time_step))*x/z],
@@ -90,7 +90,7 @@ class Kalman(object):
         time_step = np.abs(time_step)
         if np.size(pos_meas) < 2:
             return self.predict(pos, theta, x, z, time_step)
-        if z > 1e-40:
+        if np.abs(z) > 1e-40:
             x_k_k1 = np.array([[pos[0]+(np.sin(theta+z*time_step)-np.sin(theta))*x/z],
                                [x*np.cos(theta)],
                                [pos[1]+(np.cos(theta)-np.cos(theta+z*time_step))*x/z],
