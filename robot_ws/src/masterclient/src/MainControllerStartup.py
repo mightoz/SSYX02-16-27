@@ -15,11 +15,13 @@ def talker():
     #	pub.publish("align2")
     #	rate.sleep()
     try:
+        rospy.init_node('robot_iterator')
         iterator = rospy.ServiceProxy('iterator', Iterator)
         while(1):
             start = time.time()
             s = String()
-            s.data = "align1"	
+            s.data = rospy.get_param(rospy.get_name()+'/cordfunc')
+            #s.data = "align1"	
             resp1 = iterator(s)
             if s.data == "align2":
                 stop = time.time()
