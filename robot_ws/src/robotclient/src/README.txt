@@ -5,7 +5,7 @@ service_Rotate:
 rosrun robotclient serviceRotate.py __name:=rotateRobot_service1 rotateRobot:=rotateRobot1 RosAria/cmd_vel:=robot1/cmd_vel
 
 get_coord_server.py:
-get_coord_server.py __name:=get_coord_server1 get_coord:=get_coord1 _ip_of_uwb:=101
+rosrun robotclient get_coord_server.py __name:=get_coord_server1 get_coord:=get_coord1 _ip_of_uwb:=101
 
 
 service_MoveForward.py:
