@@ -157,7 +157,11 @@ class Node(object):
 
         :return: current position
         """
-        return self.pos
+        if self.type == "Base":
+            p = self.measure_coordinates()
+        else:
+            p = self.pos
+        return p
 
     def get_kalman(self):
         """
@@ -180,7 +184,7 @@ class Node(object):
         """
         # Perhaps not empty, returns weirds
         tmp_pos = np.empty([], dtype=np.float32)
-        if self.type == "Base" or self.type == "End":
+        if self.type == "End": #self.type == "Base" or
             tmp_pos = self.pos
         else:
             srv = 'get_coord' + str(self.node)
