@@ -52,12 +52,13 @@ plt.clabel(CS, inline=1, fontsize=10)
 plt.title('Simplest default with labels')
 plt.show()
 """
-k = 0.3
+k = 0.1
 T = 3
-c_a = CollisionAvoidance.CollisionAvoidance(0.5**2, 1e-2**2, k)
+c_a = CollisionAvoidance.CollisionAvoidance(0.5, 5e-2, k)
 for i in range(0, 100):
     rob1 = [6*np.random.rand(2)-3, 2*np.pi*np.random.rand(), np.random.rand(), 2*np.random.rand()-1]
     rob2 = [6*np.random.rand(2)-3, 2*np.pi*np.random.rand(), np.random.rand(), 2*np.random.rand()-1]
-    c_a.calc_new_controls(rob1[0], rob1[1], rob1[2], rob1[3], rob2[0], rob2[1], rob2[2], rob2[3], T)
-
+    if np.linalg.norm(rob2[0]-rob1[0]) > 1.1 * 0.5:
+        c_a.calc_new_controls(rob1[0], rob1[1], rob1[2], rob1[3], rob2[0], rob2[1], rob2[2], rob2[3], T)
+plt.show()
 

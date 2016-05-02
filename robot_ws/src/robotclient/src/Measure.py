@@ -93,10 +93,10 @@ class Measure(object):
 if __name__ == '__main__':
     Measure.talker()
 """
-runner = Measure(101)
+runner = Measure(103)
 runner.set_nbr_of_measurements(1)
 runner.__open_sock__()
-for i in range(0, 100):
+for i in range(0, 10):
     print runner.main()
     time.sleep(1)
 runner.__close_sock__()
