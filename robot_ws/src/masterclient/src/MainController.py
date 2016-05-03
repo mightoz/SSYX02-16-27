@@ -29,16 +29,16 @@ class MainController():
         basepos = req.data
         f = np.array([basepos[0], basepos[1]], dtype=np.float32)  # temp for testing  
         self.nodes[0].set_pos(f)
-        print f
         return BaseEndGetCoordResponse(1)
 
     def handle_get_end(self, req):
         #f = Floats()
         endpos = req.data
         f = np.array([endpos[0], endpos[1]], dtype=np.float32)  # temp for testing  
-        self.nodes[self.nbr_of_nodes-1].set_pos(f) 
-        print f       
+        self.nodes[self.nbr_of_nodes-1].set_pos(f)       
         return BaseEndGetCoordResponse(1)
+
+
 
 ##################################################################################################################
 
@@ -59,7 +59,8 @@ class MainController():
         t_z = 2  # Speed factor rotation, -||-  !=0
         ok_dist = 0.05  # Minimum distance to next targetpos, k affects this
 
-        #Instancing of robots
+
+        #Instantiate Nodes
         self.nbr_of_nodes = nbr_of_nodes
         self.nodes = []
         for i in range(0, self.nbr_of_nodes):
@@ -71,6 +72,12 @@ class MainController():
                 self.nodes += [Node.Node(i, "Robot")]
                 self.nodes[i].set_kalman(sigma_meas, sigma_x, sigma_z)
                 self.nodes[i].set_controls(x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist)
+                #Set inital Base/End position to defualt if measurement should fail
+        initend = np.array([0,-2], dtype=np.float32)
+        initbase = np.array([0,3], dtype=np.float32)
+        self.nodes[0].set_pos(initend)
+        self.nodes[self.nbr_of_nodes-1].set_pos(initbase)
+
 
 
         s = rospy.Service('get_coordEnd', BaseEndGetCoord, self.handle_get_end) #Service for changing End Coords
@@ -83,37 +90,43 @@ class MainController():
         """
         Callibrates robots in area and updates inital position and theta accordingly
         """
-        for i in range(1, self.nbr_of_nodes-1):
+
+        #Init for inital orientation and position
+        for i in range(0, self.nbr_of_nodes-1): #Remove -1 if UWB connected to END
             print "For loop", i
             first_pos = np.empty([], dtype=np.float32)
             second_pos = np.empty([], dtype=np.float32)
-            #Get first Position measurement
-            srv = 'get_coord' + str(i)
-            rospy.wait_for_service(srv)
-            get_coords = rospy.ServiceProxy(srv, GetCoord)
-            try:
-                errorpos = True
-                while errorpos:
-                    f = Floats()
-                    f = get_coords(1)
-                    first_pos = np.array(f.data.data, dtype=np.float32)
-                    if len(first_pos) == 2:
-                        errorpos = False
-                    else:
-                        #Sleep for 0.5s to ensure break for measurement with UWB
-                        time.sleep(0.5)
-                        print "Failed to get inital position for robot:", i
-            except rospy.ServiceException as exc:
-                print("Service did not process request: " + str(exc))
-            #Move forward before second measurement
-            srv = '/moveRobot' + str(i)
-            rospy.wait_for_service(srv)
-            mv_robot = rospy.ServiceProxy(srv, MoveRobot)
-            try:
-                x = mv_robot(0.2)
-            except rospy.ServiceException as exc:
-                print("Service did not process request: " + str(exc))
-            #Get second position measurement
+            if i != 0 and i != self.nbr_of_nodes-1:
+                #First measurement and movement only required of RobotNodes 
+                #Measure inital position
+                srv = 'get_coord' + str(i)
+                rospy.wait_for_service(srv)
+                get_coords = rospy.ServiceProxy(srv, GetCoord)
+                try:
+                    #Retry measuring inital position if recieved position errored
+                    errorpos = True
+                    while errorpos:
+                        f = Floats()
+                        f = get_coords(1)
+                        first_pos = np.array(f.data.data, dtype=np.float32)
+                        if len(first_pos) == 2: #If len(first_pos) > 2 then positon is faulty
+                            errorpos = False
+                        else:
+                            time.sleep(0.5) #Sleep to make sure UWB rests
+                            print "Failed to get inital position for robot:", i
+                except rospy.ServiceException as exc:
+                    print("Service did not process request: " + str(exc))
+                print first_pos
+                #Movment for robots before second inital measurement
+                srv = '/moveRobot' + str(i)
+                rospy.wait_for_service(srv)
+                mv_robot = rospy.ServiceProxy(srv, MoveRobot)
+                try:
+                    x = mv_robot(0.2) #Move forward 20cm
+                except rospy.ServiceException as exc:
+                    print("Service did not process request: " + str(exc))
+
+            #Measure second position for robots, and Base/End inital position
             srv = 'get_coord' + str(i)
             rospy.wait_for_service(srv)
             get_coords = rospy.ServiceProxy(srv, GetCoord)
@@ -123,34 +136,36 @@ class MainController():
                     f = Floats()
                     f = get_coords(1)
                     second_pos = np.array(f.data.data, dtype=np.float32)
-                    if len(second_pos) == 2:
+                    if len(second_pos) == 2: #If len(first_pos) > 2 then positon is faulty
                         errorpos = False
                     else:
-                        time.sleep(0.5)
+                        time.sleep(0.5) #Sleep to make sure UWB rests
                         print "Failed to get inital position for robot:", i
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))
-            #Update current position
+            #Set latest measured position to position
             self.nodes[i].set_pos(second_pos)
             print second_pos
-            print first_pos
-            #Calulate Theta
-            A = second_pos - first_pos
-            B = np.array([1,0], dtype=np.float32)
-            if np.linalg.norm(A) >1e-40:
-                phi = np.arccos(np.dot(A,B)/(np.linalg.norm(A)*np.linalg.norm(B)))
-            if second_pos[1]>=first_pos[1]:
-                self.nodes[i].set_theta(phi)
-            else:
-                self.nodes[i].set_theta(2*np.pi-phi)
-            print self.nodes[i].get_theta()*180/np.pi
-        #Inital positions for Base and end to avoid errors 
-        initend = np.array([0,-2], dtype=np.float32)
-        initbase = np.array([0,3], dtype=np.float32)
-        self.nodes[0].set_pos(initend)
-        self.nodes[3].set_pos(initbase)
-        print "Inital position of base:", self.nodes[0].get_pos()
-        print "Inital position of end:", self.nodes[3].get_pos()
+            
+            #If a robot, calculate the orientation in the room
+            if i != 0 and i != self.nbr_of_nodes-1:
+                A = second_pos - first_pos
+                B = np.array([1,0], dtype=np.float32)
+                if np.linalg.norm(A) >1e-40:
+                    phi = np.arccos(np.dot(A,B)/(np.linalg.norm(A)*np.linalg.norm(B)))
+                if second_pos[1]>=first_pos[1]:
+                    self.nodes[i].set_theta(phi)
+                else:
+                    self.nodes[i].set_theta(2*np.pi-phi)
+                print "This is the orientation: " , self.nodes[i].get_theta()*180/np.pi
+           #End of initation
+ 
+
+        s = rospy.Service('get_coordEnd', BaseEndGetCoord, self.handle_get_end)
+        #s = rospy.Service('get_coordBase', BaseEndGetCoord, self.handle_get_base)  
+        service = rospy.Service('iterator', Iterator, self.align_robots)
+        rospy.spin()
+        rospy.on_shutdown(self.terminator)
 
     def align_robots(self, data):
         # Add update Base/End position?
@@ -163,23 +178,21 @@ class MainController():
         elif (data.data.data == "align2"):
             self.align_robots_2()
             self.calls = self.calls + 1
+
+        base_pos = np.array(self.nodes[0].measure_coordinates(), dtype=np.float32)
+        print "This is updated base" , base_pos
+        if (np.size(base_pos) == 2):
+            self.nodes[0].set_pos(base_pos) #Update position of base
+        #FOR END POS
+        #end_pos = np.array(self.nodes[self.nbr_of_nodes-1].measure_coordinates(), dtype=np.float32)
+        #print "This is updated base" , end_pos
+        #if (np.size(end_pos) == 2):
+        #    self.nodes[0].set_pos(end_pos) #Update position of base
         if self.calls > 5:
             print "Please consider recallibration of Robots"
         return IteratorResponse(1)
 
     def align_robots_1(self):
-        #####TODOODOOOOO#############
-        #FIX SLEEP FOR MEASURE IN ALIGN1.0
-        # Choose number of self.nodes
-        """number_of_nodes = 4
-        for i in range(0, number_of_nodes):
-            self.nodes.append(Node.Node(i))  # create instances of all the Nodes
-        else:
-            pass"""
-
-        # Set while condition too True.
-        #not_finished = True
-        # while (not_finished):
         # Loop through all of the robots
         for i in range(1, self.nbr_of_nodes - 1):
             # Calulate correctposition for robot
@@ -194,7 +207,6 @@ class MainController():
 
     def align_robots_2(self):
         corr_idx = 1+ np.mod(self.calls, self.nbr_of_nodes - 2)  # Decide which robot should correct its position
-        #corr_idx = 2 #TEST FOR DEBUGGING TIMING WITHOUT WEEIRD ASS MEASURE       
         for i in range(1, self.nbr_of_nodes - 1):  # Calculate/Estimate new state
             if i != corr_idx:
                 x2, v2 = self.nodes[i].get_kalman().predict(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
@@ -212,6 +224,7 @@ class MainController():
                     x2, v2 = self.nodes[i].get_kalman().predict(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
                                                             self.nodes[i].get_x(), self.nodes[i].get_z(),
                                                             self.dt)
+                    print "Robot %s predicts" % i
                 else:
                     print "this was meas_pos", meas_pos
                     x2, v2 = self.nodes[i].get_kalman().correct(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
@@ -228,7 +241,6 @@ class MainController():
                                                                 self.nodes[self.nodes[i].get_right_neighbor()].get_pos()) #self.nodes[i].get_axlen()
             self.nodes[i].set_x(x3)
             self.nodes[i].set_z(v3)
-            print i
             self.nodes[i].update_twist()
             
 

@@ -13,8 +13,9 @@ import numpy as np
 
 def handle_update_twist(data):
     ack = 0
-    x = data.data[0]
-    z = data.data[1]
+    inpt = np.array(data.data.data, dtype=np.float32)
+    x = inpt[0]
+    z = inpt[1]
 
     twist = Twist()
 
@@ -28,8 +29,8 @@ def handle_update_twist(data):
     return UpdateTwistResponse(ack)
 
 def update_twist_server():
-    rospy.init_node('update_twist_server_1')
-    s = rospy.Service('updateTwist1', UpdateTwist, handle_update_twist)
+    rospy.init_node('update_twist_server_')
+    s = rospy.Service('updateTwist', UpdateTwist, handle_update_twist)
     print rospy.get_name(), "Ready to update twist"
     rospy.spin()
 

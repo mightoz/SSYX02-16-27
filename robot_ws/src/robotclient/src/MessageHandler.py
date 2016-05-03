@@ -56,7 +56,7 @@ class MessageHandler(object):
                 status, msg_id_cfrm = self.uwb_handler.req_range(msg_id, responder_id)
             except TypeError:
                 print 'RCMSendRangeRequest.req_range returned a NoneType value'
-                return -1
+  
             attempt += 1
             if status[0] == 0:
                 # receive information about the measured range and if it was successful.
@@ -64,11 +64,11 @@ class MessageHandler(object):
                     range_info_status, range_info_fre = self.uwb_handler.rcm_minimal_range_info()
                 except TypeError:
                     print 'RCMSendRangeRequest.rcm_minimal_range_info returned a NoneType value'
-                    return -1
+
                 if range_info_status[0] == 0:  # successful measurement
                     success = 1
                     calc_range = range_info_fre[0]/1000.0
-                elif range_info_status[0] == 1 and do_print:
+                elif range_info_status[0] == 1:
                     print 'range timeout\n'
                 elif range_info_status[0] == 2:
                     print 'LED failure\n'
@@ -100,6 +100,7 @@ class MessageHandler(object):
 
         # instantiate the row vector (N-by-1 matrix) that will hold the measured distance to the nodes.
         # The order that these distances will be in corresponds to the order of the anchors parameter.
+        failed = False
         distance = np.zeros((np.size(anchors), 1), dtype=np.float)
         for i in range(0, nbr_of_success_readings):
             for j in range(0, np.size(anchors)):
@@ -108,15 +109,19 @@ class MessageHandler(object):
                     if dist != -1:
                         distance[j, 0] += dist / nbr_of_success_readings  # add the average distance.
                     else:
-                        return
+                        failed = True
+                        break
                 else:
                     print 'Check the ip of anchor %s' % j
-                    return
-        pos = LocateRobot.locate_robot(anchors, distance, max_tol, do_print)
-        if pos[0] == 1337:
-            return None
-        else:
-            return pos
+                    failed = True
+        finalpos = None
+        if failed == False:
+            pos = LocateRobot.locate_robot(anchors, distance, max_tol, do_print)
+            if pos[0] == 1337:
+                finalpos = None
+            else:
+                finalpos = pos
+        return finalpos
 
     def dc_req(self, do_print):
         """
