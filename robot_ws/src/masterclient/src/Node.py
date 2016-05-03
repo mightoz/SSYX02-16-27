@@ -120,13 +120,11 @@ class Node(object):
         :return:
         """
         self.pos = val
+        #Might not be needed if Base is measured with UWB
         if (self.type == "Base" or self.type == "End"):
             self.recorded_positions = val
             self.recorded_x_positions = np.array([val[0]], dtype=np.float32)
             self.recorded_y_positions = np.array([val[1]], dtype=np.float32)
-            print self.recorded_positions
-            print self.recorded_x_positions
-            print self.recorded_y_positions
 
     def get_type(self):
         return self.type 
@@ -180,6 +178,7 @@ class Node(object):
         """
         # Perhaps not empty, returns weirds
         tmp_pos = np.empty([], dtype=np.float32)
+        #Comment this out if END has UWB
         if self.type == "End": #self.type == "Base" or
             tmp_pos = self.pos
         else:
