@@ -4,6 +4,12 @@ import numpy as np
 class Kalman(object):
 
     def __init__(self):
+
+        sigma_x = 0.05  # Standard deviation for speed, percentage
+        sigma_z = 0.025  # Standard deviation for rotation, percentage
+        sigma_meas = 0.05  # Standard deviation for UWB measurements, NOT percentage
+        self.dt = 0.5  # Timesteps for loop, used in kalmanpredict
+
         self.p = 0.1*np.eye(4)
         self.q = np.zeros((4, 4))
         self.std_meas = None

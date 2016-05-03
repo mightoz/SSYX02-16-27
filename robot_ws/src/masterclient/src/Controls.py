@@ -106,14 +106,14 @@ def get_rot_magn_2(theta, current, target, t):
 
 class Controls(object):
     def __init__(self):
-        self.x_min = None
-        self.x_max = None
-        self.z_min = None
-        self.z_max = None
-        self.k = None
-        self.t_x = None
-        self.t_z = None
-        self.ok_dist = None
+        self.x_min = 0.2  # Minimm speed forwards
+        self.x_max = 0  # Maximum speed forwards
+        self.z_min = 0  # Minimum rotation speed, absolute value
+        self.z_max = 0.5  # Maximum rotation speed, absolute value
+        self.k = 0.5  # Gradient step
+        self.t_x = 2  # Speed factor forward, lower factor = higher speed, !=0
+        self.t_z = 2  # Speed factor rotation, -||-  !=0
+        self.ok_dist = 0.05  # Minimum distance to next targetpos, k affects this
 
     def initiate(self, x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist):
 
