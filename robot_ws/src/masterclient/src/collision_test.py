@@ -52,6 +52,34 @@ plt.clabel(CS, inline=1, fontsize=10)
 plt.title('Simplest default with labels')
 plt.show()
 """
+"""
+pos1 = 2*np.array([[1, 0, -1, 0],
+                   [0, 1, 0, -1]])
+theta1 = np.array([0, np.pi/2, np.pi, 2*np.pi/2])
+pos2 = 2*np.array([[1/np.sqrt(2), -1/np.sqrt(2), -1/np.sqrt(2), 1/np.sqrt(2)],
+                   [1/np.sqrt(2), 1/np.sqrt(2), -1/np.sqrt(2), -1/np.sqrt(2)]])
+theta2 = 0
+x = 1
+z = np.array([1, -1])
+
+a = np.linspace(-3, 3)
+b = np.linspace(-3, 3)
+A, B = np.meshgrid(a, b)
+for i in range(0, np.size(pos1, axis=1)):
+    for j in range(0, np.size(pos2, axis=1)):
+        plt.figure()
+        plt.subplot(211)
+        plt.plot(pos1[0, i], pos1[1, i], 'go')
+        plt.plot(pos2[0, j], pos2[1, j], 'bo')
+        plt.axis([-2.5, 2.5, -2.5, 2.5])
+        plt.subplot(212)
+        val = CollisionAvoidance.__tar_fun_rot_rot__(pos1[:, i], theta1[0], x, z[0], pos2[:, j], theta2, x, z[0], A, B)
+        CS = plt.contour(A, B, val, 100)
+        plt.clabel(CS, inline=1, fontsize=10)
+        plt.title('Simplest default with labels')
+        plt.axis('equal')
+plt.show()
+"""
 k = 0.1
 T = 3
 c_a = CollisionAvoidance.CollisionAvoidance(0.5, 5e-2, k)

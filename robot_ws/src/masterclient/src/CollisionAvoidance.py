@@ -304,7 +304,7 @@ class CollisionAvoidance(object):
                 if new_x_1 < 0:
                     print 'could not find viable route'
                     new_x_1 = 0.01
-                if time.time() - bfr > 0.5:
+                if time.time() - bfr > 0.3:
                     print 'calculation timed out'
                     new_x_1 = x_1
                     new_z_1 = z_1
