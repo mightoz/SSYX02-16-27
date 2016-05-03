@@ -75,13 +75,13 @@ class MainController():
                 #Set inital Base/End position to defualt if measurement should fail
         initend = np.array([0,-2], dtype=np.float32)
         initbase = np.array([0,3], dtype=np.float32)
-        self.nodes[0].set_pos(initend)
-        self.nodes[self.nbr_of_nodes-1].set_pos(initbase)
+        #self.nodes[0].set_pos(initend)
+        self.nodes[self.nbr_of_nodes-1].set_pos(initend)
 
 
 
-        s = rospy.Service('get_coordEnd', BaseEndGetCoord, self.handle_get_end) #Service for changing End Coords
-        s = rospy.Service('get_coordBase', BaseEndGetCoord, self.handle_get_base)  #Service for changing Base Coords
+        #s = rospy.Service('get_coordEnd', BaseEndGetCoord, self.handle_get_end) #Service for changing End Coords
+        #s = rospy.Service('get_coordBase', BaseEndGetCoord, self.handle_get_base)  #Service for changing Base Coords
         service = rospy.Service('iterator', Iterator, self.align_robots) #Iterator service called whenever an iteration of the program is wanted
         rospy.spin() 
         rospy.on_shutdown(self.terminator) #On CTRL+C function call.
@@ -158,14 +158,8 @@ class MainController():
                 else:
                     self.nodes[i].set_theta(2*np.pi-phi)
                 print "This is the orientation: " , self.nodes[i].get_theta()*180/np.pi
-           #End of initation
+            #End of initation
  
-
-        s = rospy.Service('get_coordEnd', BaseEndGetCoord, self.handle_get_end)
-        #s = rospy.Service('get_coordBase', BaseEndGetCoord, self.handle_get_base)  
-        service = rospy.Service('iterator', Iterator, self.align_robots)
-        rospy.spin()
-        rospy.on_shutdown(self.terminator)
 
     def align_robots(self, data):
         # Add update Base/End position?
@@ -188,7 +182,7 @@ class MainController():
         #print "This is updated base" , end_pos
         #if (np.size(end_pos) == 2):
         #    self.nodes[0].set_pos(end_pos) #Update position of base
-        if self.calls > 5:
+        if self.calls > 100:
             print "Please consider recallibration of Robots"
         return IteratorResponse(1)
 

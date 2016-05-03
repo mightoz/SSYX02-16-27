@@ -121,10 +121,10 @@ class Node(object):
         """
         self.pos = val
         #Might not be needed if Base is measured with UWB
-        if (self.type == "Base" or self.type == "End"):
-            self.recorded_positions = val
-            self.recorded_x_positions = np.array([val[0]], dtype=np.float32)
-            self.recorded_y_positions = np.array([val[1]], dtype=np.float32)
+        #if (self.type == "Base" or self.type == "End"):
+        #    self.recorded_positions = val
+        #    self.recorded_x_positions = np.array([val[0]], dtype=np.float32)
+        #    self.recorded_y_positions = np.array([val[1]], dtype=np.float32)
 
     def get_type(self):
         return self.type 
