@@ -271,47 +271,6 @@ class CollisionAvoidance(object):
                         break
         return collide, t_1, t_2
 
-    def ctrl_gradient_descent(self, pos_1, theta_1, x_1, z_1, pos_2, theta_2, x_2, z_2, time_exec):
-        if x_1 > 1e-40:
-            new_x_1 = x_1
-        else:
-            new_x_1 = 1e-40*np.sign(x_1)
-        if np.abs(z_1) > 1e-40:
-            new_z_1 = z_1
-        else:
-            new_z_1 = 1e-40*np.sign(z_1)
-        t_1 = 0
-        t_2 = 0
-        if np.linalg.norm(pos_2-pos_1) < 1.1 * self.abs_dist_tol:
-            print 'Collision can not be avoided, dist: ', np.linalg.norm(pos_2-pos_1)
-        else:
-            last_residual = 2e2
-            residual = 1e2
-            bfr = time.time()
-            while np.abs(last_residual-residual) > self.rel_dist_tol**2 or residual > (0.2 * self.abs_dist_tol)**2:
-                unused, t_1, t_2 = self.gradient_descent(pos_1, theta_1, new_x_1, new_z_1, pos_2, theta_2,
-                                                         x_2, z_2, time_exec, False)
-                x, v = predict(pos_1, theta_1, new_x_1, new_z_1, t_1)
-                p = np.array([x[0, 0], x[2, 0]])  # the point closest to pos_2
-                q = pos_2 + (p - pos_2) / np.linalg.norm(p - pos_2) * 1.2 * self.abs_dist_tol  # increase dist
-                plt.plot(p[0], p[1], 'mo')
-                plt.plot(q[0], q[1], 'ko')
-                last_residual = residual
-                dx_1, dz_1 = __safe_dist_grad__(q, pos_1, theta_1, new_x_1, new_z_1, t_1)
-                new_x_1 -= self.k*dx_1
-                new_z_1 -= self.k*dz_1
-                residual = __safe_dist_fun__(q, pos_1, theta_1, new_x_1, new_z_1, t_1)
-                if new_x_1 < 0:
-                    print 'could not find viable route'
-                    new_x_1 = 0.01
-                if time.time() - bfr > 0.3:
-                    print 'calculation timed out'
-                    new_x_1 = x_1
-                    new_z_1 = z_1
-                    break
-            print np.abs(last_residual-residual), time.time() - bfr
-        return new_x_1, new_z_1, t_1, t_2
-
     def calc_new_controls(self, pos_1, theta_1, x_1, z_1, pos_2, theta_2, x_2, z_2, time_exec):
         new_x_1 = x_1
         new_z_1 = z_1
@@ -325,35 +284,8 @@ class CollisionAvoidance(object):
             collide2, t1, t2 = self.gradient_descent(pos_1, theta_1, new_x_1, new_z_1, pos_2, theta_2, new_x_2,
                                                      new_z_2, time_exec, True)
             if collide2:
-                print 'collide2: rerouting the path of robot1'
-                plt.figure()
-                new_x_1, new_z_1, t_1, t_2 = self.ctrl_gradient_descent(pos_1, theta_1, new_x_1, new_z_1, pos_2,
-                                                                        theta_2, new_x_2, new_z_2, time_exec)
-                collide3, t1, t2 = self.gradient_descent(pos_1, theta_1, new_x_1, new_z_1, pos_2, theta_2,
-                                                                 new_x_2, new_z_2, time_exec, True)
-                """ printing stuff below """
-                assd, dssa = predict(pos_1, theta_1, new_x_1, new_z_1, t_1)
-                poss1 = np.array([assd[0, 0], assd[2, 0]])
-                plt.plot(poss1[0], poss1[1], 'co')
-                print np.linalg.norm(poss1-pos_2)
-                plt.plot(pos_1[0], pos_1[1], 'go')
-                plt.plot(pos_2[0], pos_2[1], 'bo')
-                time = np.linspace(0, time_exec, 101)
-                pos1 = np.zeros((2, 101))
-                pos2 = np.zeros((2, 101))
-                for i in range(0, len(time)):
-                    asd, dsa = predict(pos_1, theta_1, new_x_1, new_z_1, time[i])
-                    pos1[:, i] = np.array([asd[0, 0], asd[2, 0]])
-                    asdd, dsad = predict(pos_1, theta_1, x_1, z_1, time[i])
-                    pos2[:, i] = np.array([asdd[0, 0], asdd[2, 0]])
-                plt.plot(pos1[0, :], pos1[1, :], 'g')
-                plt.plot(pos2[0, :], pos2[1, :], 'b')
-                v = np.linspace(0, 2*np.pi)
-                plt.plot(poss1[0]+0.25*np.cos(v), poss1[1]+0.25*np.sin(v), 'c')
-                plt.plot(pos_2[0]+0.25*np.cos(v), pos_2[1]+0.25*np.sin(v), 'b')
-                plt.axis('equal')
-                """ eof printing stuff """
-                if collide3:
-                    print 'collide3: stopping robot1'
-                    new_x_1 = 0
+                print 'collide2: stopping robot1'
+                new_x_1 = 0
+                collide3, t1, t2 = self.gradient_descent(pos_1, theta_1, new_x_1, new_z_1, pos_2, theta_2, new_x_2,
+                                                         new_z_2, time_exec, True)
         return new_x_1, new_z_1, new_x_2, new_z_2
