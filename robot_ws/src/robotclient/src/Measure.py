@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 PKG = 'robotclient'
-"""
-import roslib;
 
+import roslib;
 roslib.load_manifest(PKG)
 import rospy
 from rospy.numpy_msg import numpy_msg
 from robotclient.msg import *
-"""
 import MessageHandler
 import Anchor
 import numpy as np
@@ -63,22 +61,24 @@ class Measure(object):
     def main(self):
         # Params: UWB-transceiver ip and coordinates for each transceiver.
         pos = self.msg_handler.run_loc_rob(self.anchors, self.nbr_of_measurements, self.tol, False)
+        print pos
         if pos is None or np.size(pos) != 2:
-            pos = np.array([0, 0, -1], dtype=np.uint32)
+            pos = np.array([0, 0, -1], dtype=np.float32)
         pos_np = np.array(pos, dtype=np.float32)
 
-        #f = Floats()
-        #f.data = pos_np
+        f = Floats()
+        f.data = pos_np
+        print pos_np
 
-        return pos_np
-        #return f
+        #return pos_np
+        return f
 
     def __open_sock__(self):
         status = self.msg_handler.connect_req(0)  # connect to the RCM that is connected via ethernet cable
         if status == -1:
             print 'Could not connect to the UWB radio'
             self.__close_sock__()  # close the socket
-            return np.array([0, 0, -1], dtype=np.uint32)
+            return np.array([0, 0, -1], dtype=np.float32)
 
     def __close_sock__(self):
         self.msg_handler.dc_req(0)  # close the socket
@@ -93,6 +93,7 @@ class Measure(object):
 if __name__ == '__main__':
     Measure.talker()
 """
+"""
 runner = Measure(103)
 runner.set_nbr_of_measurements(1)
 runner.__open_sock__()
@@ -101,3 +102,4 @@ for i in range(0, 10):
     time.sleep(1)
 runner.__close_sock__()
 plt.show()
+"""
