@@ -52,9 +52,8 @@ class Node(object):
         self.kalman = Kalman.Kalman()
         self.controls = Controls.Controls()
 
-    def set_kalman(self, sigma_meas, sigma_x, sigma_z):
         """
-
+        #TODO: PLACE WHERE IT SHOULD BE
         :param sigma_meas: standard deviation of measurement noise. sqrt(2) times the gauss radius
         (where the function has decreased by a factor exp(-1)) of the control
         :param sigma_x: standard deviation of translational noise relative to 1 (m/s for example). sqrt(2) times
@@ -62,14 +61,14 @@ class Node(object):
         :param sigma_z: standard deviation of rotational noise relative to 1 (rad/s for example). sqrt(2) times
         the gauss radius (where the function has decreased by a factor exp(-1)) of the control
         :return:
-        """
+
         self.kalman.set_sigma_x(sigma_x)
         self.kalman.set_sigma_z(sigma_z)
         self.kalman.set_sigma_meas(sigma_meas)
-
-    def set_controls(self, x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist):
         """
 
+        """
+        #TODO: ADD TO APPROPRIATE PLACE
         :param x_min: minimum velocity [m/s]
         :param x_max: maximum velocity [m/s]
         :param z_min: minimum angular velocity [rad/s]
@@ -79,16 +78,8 @@ class Node(object):
         :param t_z: time to rotate to face target pos
         :param ok_dist: minimum distance to target pos that will make the robot move
         :return:
-        """
-        self.controls.set_x_min(x_min)
-        self.controls.set_x_max(x_max)
-        self.controls.set_z_min(z_min)
-        self.controls.set_z_max(z_max)
-        self.controls.set_k(k)
-        self.controls.set_t_x(t_x)
-        self.controls.set_t_z(t_z)
-        self.controls.set_ok_dist(ok_dist)
 
+        """
     def set_x(self, val):
         """
 

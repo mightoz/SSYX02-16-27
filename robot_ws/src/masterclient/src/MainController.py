@@ -44,21 +44,7 @@ class MainController():
 
     def __init__(self, nbr_of_nodes):
         self.calls = 0
-        
-        # Some inital values for kalman and controls
-        x_max = 0.2  # Maximum speed forwards
-        x_min = 0  # Minimm speed forwards
-        z_max = 0.5  # Maximum rotation speed, absolute value
-        z_min = 0  # Minimum rotation speed, absolute value
-        sigma_x = 0.05  # Standard deviation for speed, percentage
-        sigma_z = 0.025  # Standard deviation for rotation, percentage
-        sigma_meas = 0.05  # Standard deviation for UWB measurements, NOT percentage
         self.dt = 0.5  # Timesteps for loop, used in kalmanpredict
-        k = 0.5  # Gradient step
-        t_x = 2  # Speed factor forward, lower factor = higher speed, !=0
-        t_z = 2  # Speed factor rotation, -||-  !=0
-        ok_dist = 0.05  # Minimum distance to next targetpos, k affects this
-
 
         #Instantiate Nodes
         self.nbr_of_nodes = nbr_of_nodes
@@ -70,8 +56,6 @@ class MainController():
                 self.nodes += [Node.Node(i, "End")]
             else:
                 self.nodes += [Node.Node(i, "Robot")]
-                self.nodes[i].set_kalman(sigma_meas, sigma_x, sigma_z)
-                self.nodes[i].set_controls(x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist)
                 #Set inital Base/End position to defualt if measurement should fail
         initend = np.array([0,-2], dtype=np.float32)
         initbase = np.array([0,3], dtype=np.float32)

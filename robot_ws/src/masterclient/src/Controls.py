@@ -115,18 +115,6 @@ class Controls(object):
         self.t_z = 2  # Speed factor rotation, -||-  !=0
         self.ok_dist = 0.05  # Minimum distance to next targetpos, k affects this
 
-    def initiate(self, x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist):
-
-        self.x_min = x_min
-        self.x_max = x_max
-        self.z_min = z_min
-        self.z_max = z_max
-        self.k = k
-        self.t_x = t_x
-        self.t_z = t_z
-        self.ok_dist = ok_dist
-        return
-
     def find_next_pos(self, curr_pos, neighbour_1_pos, neighbour_2_pos):
         """
 
