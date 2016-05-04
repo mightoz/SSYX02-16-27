@@ -135,8 +135,6 @@ class Controls(object):
         :param neighbour_2_pos: your left neighbour
         :return: the next target position
         """
-        print neighbour_1_pos
-        print neighbour_2_pos
         dist1 = neighbour_1_pos - curr_pos
         dist2 = neighbour_2_pos - curr_pos
         return curr_pos + self.k * (dist1 + dist2)
