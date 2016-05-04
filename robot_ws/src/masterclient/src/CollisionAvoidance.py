@@ -13,7 +13,7 @@ be quite small. if abstol is reached, there may be a collision. abstol should be
 TODO: add a function that checks gradient descent for each pair of robots.
 """
 
-
+#Probably not used
 def predict(pos, theta, x, z, time_step):
     """
     This method can be used to predict the robots position after dt seconds solely based on
@@ -41,7 +41,7 @@ def predict(pos, theta, x, z, time_step):
     theta += z*time_step
     return x_k_k1, theta
 
-
+#Probably not used
 def get_rot_dir(theta, q, rob_2_pos):
     """
 
