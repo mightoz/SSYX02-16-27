@@ -28,8 +28,8 @@ class Kalman(object):
             y_w1 = x*(np.cos(theta)-np.cos(theta+z*time_step))/z
             y_w2 = z*(np.sin(theta+z*time_step)*time_step+(np.cos(theta+z*time_step)-np.cos(theta))/z)*x/z
             y_dot_w1 = x*np.sin(theta)
-            theta_w2 = time_step
-            theta_dot_w2 = 0
+            theta_w2 = z*time_step
+            theta_dot_w2 = z
         else:
             x_w1 = x*np.cos(theta)*time_step
             x_w2 = 0
@@ -37,8 +37,8 @@ class Kalman(object):
             y_w1 = x*np.sin(theta)*time_step
             y_w2 = 0
             y_dot_w1 = x*np.sin(theta)
-            theta_w2 = 0
-            theta_dot_w2 = 0
+            theta_w2 = z*time_step
+            theta_dot_w2 = z
         l = np.array([[x_w1, x_w2, 0, 0, 0, 0],
                       [x_dot_w1, 0, 0, 0, 0, 0],
                       [y_w1, y_w2, 0, 0, 0, 0],
@@ -65,23 +65,24 @@ class Kalman(object):
         :return: A prediction of the current position based on the control input and last position position
         """
         time_step = np.abs(time_step)
+        x_pos = x_k1_k1[0, 0]
+        y_pos = x_k1_k1[2, 0]
+        theta = x_k1_k1[4, 0]
         if np.abs(z) > 1e-40:
-            x_k_k1 = np.array([[x_k1_k1[0, 0]+(x_k1_k1[1, 0]+x*np.cos(x_k1_k1[4, 0]))*np.sin((x_k1_k1[5, 0]+z)*time_step)/(x_k1_k1[5, 0]+z)-
-                                (x_k1_k1[3, 0]+x*np.sin(x_k1_k1[4, 0]))*(1-np.cos((x_k1_k1[5, 0]+z)*time_step))/(x_k1_k1[5, 0]+z)],
-                               [x_k1_k1[1, 0] + x*np.cos(x_k1_k1[4, 0])],
-                               [x_k1_k1[2, 0]+(x_k1_k1[1, 0]+x*np.cos(x_k1_k1[4, 0]))*(1-np.cos((x_k1_k1[5, 0]+z)*time_step))/(x_k1_k1[5, 0]+z)+
-                                (x_k1_k1[3, 0]+x*np.sin(x_k1_k1[4, 0]))*np.sin((x_k1_k1[5, 0]+z)*time_step)/(x_k1_k1[5, 0]+z)],
-                               [x_k1_k1[3, 0] + x*np.sin(x_k1_k1[4, 0])],
-                               [x_k1_k1[4, 0]+z*time_step],
-                               [x_k1_k1[5, 0]+z]])  # predicted state
+            x_k_k1 = np.array([[x_pos + x*np.cos(theta)*np.sin(z*time_step)/z - x*np.sin(theta)*(1-np.cos(z*time_step))/z],
+                               [x*np.cos(theta)],
+                               [y_pos + x*np.sin(theta)*(1-np.cos(z*time_step))/z + x*np.sin(theta)*np.sin(z*time_step)/z],
+                               [x*np.sin(theta)],
+                               [theta + z*time_step],
+                               [z]])  # predicted state
         else:
-            x_k_k1 = np.array([[x_k1_k1[0, 0]+(x_k1_k1[1, 0]+x*np.cos(x_k1_k1[4, 0]))*time_step],
-                               [x*np.cos(x_k1_k1[4, 0])],
-                               [x_k1_k1[2, 0]+(x_k1_k1[3, 0]+x*np.sin(x_k1_k1[4, 0]))*time_step],
-                               [x*np.sin(x_k1_k1[4, 0])],
-                               [x_k1_k1[4, 0]],
-                               [x_k1_k1[5, 0]]])  # predicted state
-        self.q += self.get_noise(x_k1_k1[4, 0], x, z, time_step)
+            x_k_k1 = np.array([[x_pos + x*np.cos(theta)*time_step],
+                               [x*np.cos(theta)],
+                               [y_pos + x*np.sin(theta)*time_step],
+                               [x*np.sin(theta)],
+                               [theta + z*time_step],
+                               [z]])  # predicted state
+        self.q += self.get_noise(theta, x, z, time_step)
         return x_k_k1
 
     def correct(self, x_k1_k1, pos_meas, x, z, time_step):
@@ -96,51 +97,52 @@ class Kalman(object):
         given the error in measurements and control
         """
         time_step = np.abs(time_step)
+        x_pos = x_k1_k1[0, 0]
+        y_pos = x_k1_k1[2, 0]
+        theta = x_k1_k1[4, 0]
         if np.size(pos_meas) < 2:
             return self.predict(x_k1_k1, x, z, time_step)
         if np.abs(z) > 1e-40:
-            x_k_k1 = np.array([[x_k1_k1[0, 0]+(x_k1_k1[1, 0]+x*np.cos(x_k1_k1[4, 0]))*np.sin((x_k1_k1[5, 0]+z)*time_step)/(x_k1_k1[5, 0]+z)-
-                                (x_k1_k1[3, 0]+x*np.sin(x_k1_k1[4, 0]))*(1-np.cos((x_k1_k1[5, 0]+z)*time_step))/(x_k1_k1[5, 0]+z)],
-                               [x_k1_k1[1, 0] + x*np.cos(x_k1_k1[4, 0])],
-                               [x_k1_k1[2, 0]+(x_k1_k1[1, 0]+x*np.cos(x_k1_k1[4, 0]))*(1-np.cos((x_k1_k1[5, 0]+z)*time_step))/(x_k1_k1[5, 0]+z)+
-                                (x_k1_k1[3, 0]+x*np.sin(x_k1_k1[4, 0]))*np.sin((x_k1_k1[5, 0]+z)*time_step)/(x_k1_k1[5, 0]+z)],
-                               [x_k1_k1[3, 0] + x*np.sin(x_k1_k1[4, 0])],
-                               [x_k1_k1[4, 0]+z*time_step],
-                               [x_k1_k1[5, 0]+z]])  # predicted state
+            x_k_k1 = np.array([[x_pos + x*np.cos(theta)*np.sin(z*time_step)/z - x*np.sin(theta)*(1-np.cos(z*time_step))/z],
+                               [x*np.cos(theta)],
+                               [y_pos + x*np.sin(theta)*(1-np.cos(z*time_step))/z + x*np.sin(theta)*np.sin(z*time_step)/z],
+                               [x*np.sin(theta)],
+                               [theta + z*time_step],
+                               [z]])  # predicted state
             dx_x = 1
-            dx_d_x = np.sin((x_k1_k1[5, 0]+z)*time_step)/(x_k1_k1[5, 0]+z)
+            dx_d_x = np.sin(z*time_step)/z
             dy_x = 0
-            dy_d_x = (1-np.cos((x_k1_k1[5, 0]+z)*time_step))/(x_k1_k1[5, 0]+z)
-            dv_x = -x*np.sin(x_k1_k1[4, 0])*np.sin((x_k1_k1[5, 0]+z)*time_step)/(x_k1_k1[5, 0]+z) - x*np.cos(x_k1_k1[4, 0])*(1-np.cos((x_k1_k1[5, 0]+z)*time_step))/(x_k1_k1[5, 0]+z)
-            dv_d_x = (x_k1_k1[1, 0]+x*np.cos(x_k1_k1[4, 0]))*(np.cos((x_k1_k1[5, 0]+z)*time_step)*time_step/(x_k1_k1[5, 0]+z) - np.sin((x_k1_k1[5, 0]+z)*time_step)/(x_k1_k1[5, 0]+z)**2)-\
-                     (x_k1_k1[3, 0]+x*np.sin(x_k1_k1[4, 0]))*(np.sin((x_k1_k1[5, 0]+z)*time_step)*time_step/(x_k1_k1[5, 0]+z) - (1-np.cos((x_k1_k1[5, 0]+z)*time_step))/(x_k1_k1[5, 0]+z)**2)
+            dy_d_x = (1-np.cos(z*time_step))/z
+            dv_x = -x*np.sin(theta)*np.sin(z*time_step)/z - x*np.cos(theta)*(1-np.cos(z*time_step))/z
+            dv_d_x = x*np.cos(theta)*(np.cos(z*time_step)*time_step/z - np.sin(z*time_step)/z**2) - \
+                     x*np.sin(theta)*(np.sin(z*time_step)*time_step/z - (1-np.cos(z*time_step))/z**2)
             dx_y = 0
-            dx_d_y = (1-np.cos((x_k1_k1[5, 0]+z)*time_step))/(x_k1_k1[5, 0]+z)
+            dx_d_y = (1-np.cos(z*time_step))/z
             dy_y = 1
-            dy_d_y = np.sin((x_k1_k1[5, 0]+z)*time_step)/(x_k1_k1[5, 0]+z)
-            dv_y = -x*np.sin(x_k1_k1[4, 0])*(1-np.cos((x_k1_k1[5, 0]+z)*time_step))/(x_k1_k1[5, 0]+z) - x*np.cos(x_k1_k1[4, 0])*np.sin((x_k1_k1[5, 0]+z)*time_step)/(x_k1_k1[5, 0]+z)
-            dv_d_y = (x_k1_k1[1, 0]+x*np.cos(x_k1_k1[4, 0]))*(np.sin((x_k1_k1[5, 0]+z)*time_step)*time_step/(x_k1_k1[5, 0]+z) - (1-np.cos((x_k1_k1[5, 0]+z)*time_step))/(x_k1_k1[5, 0]+z)**2)-\
-                     (x_k1_k1[3, 0]+x*np.sin(x_k1_k1[4, 0]))*(np.cos((x_k1_k1[5, 0]+z)*time_step)*time_step/(x_k1_k1[5, 0]+z) - np.sin((x_k1_k1[5, 0]+z)*time_step)/(x_k1_k1[5, 0]+z)**2)
+            dy_d_y = np.sin(z*time_step)/z
+            dv_y = -x*np.sin(theta)*(1-np.cos(z*time_step))/z + x*np.cos(theta)*np.sin(z*time_step)/z
+            dv_d_y = x*np.cos(theta)*(np.sin(z*time_step)*time_step/z - (1-np.cos(z*time_step))/z**2) - \
+                     x*np.sin(theta)*(np.cos(z*time_step)*time_step/z - np.sin(z*time_step)/z**2)
             f = np.array([[dx_x, dx_d_x, dy_x, dy_d_x, dv_x, dv_d_x],
-                          [0, 1, 0, 0, -x*np.sin(x_k1_k1[4, 0]), 0],
+                          [0, 1, 0, 0, -x*np.sin(theta), 0],
                           [dx_y, dx_d_y, dy_y, dy_d_y, dv_y, dv_d_y],
-                          [0, 0, 0, 1, x*np.cos(x_k1_k1[4, 0]), 0],
+                          [0, 0, 0, 1, x*np.cos(theta), 0],
                           [0, 0, 0, 0, 1, 0],
                           [0, 0, 0, 0, 0, 1]])
         else:
-            x_k_k1 = np.array([[x_k1_k1[0, 0]+(x_k1_k1[1, 0]+x*np.cos(x_k1_k1[4, 0]))*time_step],
-                               [x*np.cos(x_k1_k1[4, 0])],
-                               [x_k1_k1[2, 0]+(x_k1_k1[3, 0]+x*np.sin(x_k1_k1[4, 0]))*time_step],
-                               [x*np.sin(x_k1_k1[4, 0])],
-                               [x_k1_k1[4, 0]],
-                               [x_k1_k1[5, 0]]])  # predicted state
-            f = np.array([[1, time_step, 0, 0, -x*np.sin(x_k1_k1[4, 0])*time_step, 0],
-                          [0, 1, 0, 0, -x*np.sin(x_k1_k1[4, 0]), 0],
-                          [0, 0, 1, time_step, x*np.cos(x_k1_k1[4, 0])*time_step, 0],
-                          [0, 0, 0, 1, x*np.cos(x_k1_k1[4, 0]), 0],
+            x_k_k1 = np.array([[x_pos + x*np.cos(theta)*time_step],
+                               [x*np.cos(theta)],
+                               [y_pos + x*np.sin(theta)*time_step],
+                               [x*np.sin(theta)],
+                               [theta + z*time_step],
+                               [z]])  # predicted state
+            f = np.array([[1, time_step, 0, 0, -x*np.sin(theta)*time_step, 0],
+                          [0, 1, 0, 0, -x*np.sin(theta), 0],
+                          [0, 0, 1, time_step, x*np.cos(theta)*time_step, 0],
+                          [0, 0, 0, 1, x*np.cos(theta), 0],
                           [0, 0, 0, 0, 1, 0],
                           [0, 0, 0, 0, 0, 1]])
-        self.q += self.get_noise(x_k1_k1[4, 0], x, z, time_step)  # control noise standard deviation
+        self.q += self.get_noise(theta, x, z, time_step)  # control noise standard deviation
         r = self.std_meas**2*np.array([[1, 0, 0, 0, 0, 0],
                                        [0, 1, 0, 0, 0, 0],
                                        [0, 0, 1, 0, 0, 0],
@@ -166,7 +168,6 @@ class Kalman(object):
         x_k_k = x_k_k1 + np.dot(kalman_gain, y_k)  # current state
         self.p = np.dot(np.eye(6) - np.dot(kalman_gain, h), p_k_k1)  # current covariance
         self.q = np.zeros((6, 6))  # reset control noise after correction
-        print x_k_k
         return x_k_k
 
     def set_sigma_meas(self, val):

@@ -137,6 +137,7 @@ class Controls(object):
         """
         dist1 = neighbour_1_pos - curr_pos
         dist2 = neighbour_2_pos - curr_pos
+        print self.k * (dist1 + dist2)
         return curr_pos + self.k * (dist1 + dist2)
 
     def get_trans_magn_1(self, curr_pos, tar_pos, phi):

@@ -7,7 +7,7 @@ n_iter = 60
 n_rob = 3
 n_iter_no_corr = n_rob-1
 
-x_max = 1
+x_max = 0.5
 x_min = 0.05
 z_max = 1
 z_min = 0
@@ -16,7 +16,7 @@ sigma_z = 0.025
 x = 0
 z = 0
 dt = 0.5
-k = 0.01
+k = 0.5
 t_x = 2
 t_z = 2
 ok_dist = 0.05
@@ -83,6 +83,9 @@ for j in range(0, n_iter):
             true_robot[i].set_x(x3*(1+control_noise_t))
             true_robot[i].set_z(v3*(1+control_noise_r))
 
+print true_robot[0].get_theta(), robot[0].get_theta()
+print true_robot[1].get_theta(), robot[1].get_theta()
+print true_robot[2].get_theta(), robot[2].get_theta()
 plt.plot(robot[0].get_pos()[0], robot[0].get_pos()[1], 'yo')
 plt.plot(robot[1].get_pos()[0], robot[1].get_pos()[1], 'yo')
 plt.plot(robot[2].get_pos()[0], robot[2].get_pos()[1], 'yo')

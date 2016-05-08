@@ -36,10 +36,10 @@ class Robot(object):
         self.controls.set_ok_dist(ok_dist)
 
     def set_x(self, val):
-        self.trans_vel = val - self.trans_vel
+        self.trans_vel = val
 
     def set_z(self, val):
-        self.ang_vel = val - self.ang_vel
+        self.ang_vel = val
 
     def set_state(self, state):
         self.state = state
