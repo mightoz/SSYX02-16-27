@@ -116,6 +116,7 @@ class Kalman(object):
             dv_x = -x*np.sin(theta)*np.sin(z*time_step)/z - x*np.cos(theta)*(1-np.cos(z*time_step))/z
             dv_d_x = x*np.cos(theta)*(np.cos(z*time_step)*time_step/z - np.sin(z*time_step)/z**2) - \
                      x*np.sin(theta)*(np.sin(z*time_step)*time_step/z - (1-np.cos(z*time_step))/z**2)
+            dv_x_d = -x*np.sin(theta)
             dx_y = 0
             dx_d_y = (1-np.cos(z*time_step))/z
             dy_y = 1
@@ -123,10 +124,11 @@ class Kalman(object):
             dv_y = -x*np.sin(theta)*(1-np.cos(z*time_step))/z + x*np.cos(theta)*np.sin(z*time_step)/z
             dv_d_y = x*np.cos(theta)*(np.sin(z*time_step)*time_step/z - (1-np.cos(z*time_step))/z**2) - \
                      x*np.sin(theta)*(np.cos(z*time_step)*time_step/z - np.sin(z*time_step)/z**2)
+            dv_y_d = x*np.cos(theta)
             f = np.array([[dx_x, dx_d_x, dy_x, dy_d_x, dv_x, dv_d_x],
-                          [0, 1, 0, 0, -x*np.sin(theta), 0],
+                          [0, 1, 0, 0, dv_x_d, 0],
                           [dx_y, dx_d_y, dy_y, dy_d_y, dv_y, dv_d_y],
-                          [0, 0, 0, 1, x*np.cos(theta), 0],
+                          [0, 0, 0, 1, dv_y_d, 0],
                           [0, 0, 0, 0, 1, 0],
                           [0, 0, 0, 0, 0, 1]])
         else:
@@ -136,10 +138,16 @@ class Kalman(object):
                                [x*np.sin(theta)],
                                [theta + z*time_step],
                                [z]])  # predicted state
-            f = np.array([[1, time_step, 0, 0, -x*np.sin(theta)*time_step, 0],
-                          [0, 1, 0, 0, -x*np.sin(theta), 0],
-                          [0, 0, 1, time_step, x*np.cos(theta)*time_step, 0],
-                          [0, 0, 0, 1, x*np.cos(theta), 0],
+            dx_d_x = time_step
+            dv_x = -x*np.sin(theta)*time_step
+            dv_x_d = -x*np.sin(theta)
+            dy_d_y = time_step
+            dv_y = x*np.cos(theta)*time_step
+            dv_y_d = x*np.cos(theta)
+            f = np.array([[1, dx_d_x, 0, 0, dv_x, 0],
+                          [0, 1, 0, 0, dv_x_d, 0],
+                          [0, 0, 1, dy_d_y, dv_y, 0],
+                          [0, 0, 0, 1, dv_y_d, 0],
                           [0, 0, 0, 0, 1, 0],
                           [0, 0, 0, 0, 0, 1]])
         self.q += self.get_noise(theta, x, z, time_step)  # control noise standard deviation

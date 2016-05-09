@@ -25,7 +25,7 @@ true_robot = []
 kalman = []
 controls = []
 positions = np.array([[1, 4], [4, 2], [3, 1]])
-orientat = np.array([0.4, 4, 2])
+orientat = np.array([0.4, 4, 4])
 for i in range(0, n_rob):
     robot += [Robot.Robot(x, z, orientat[i], positions[i])]
     robot[i].set_kalman(sigma_meas, sigma_x, sigma_z)
