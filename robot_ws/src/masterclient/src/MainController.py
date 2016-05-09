@@ -15,6 +15,7 @@ import math
 import matplotlib.pyplot as plt
 import Node
 import time
+import CollisionAvoidance
 
 from robotclient.srv import *
 from masterclient.srv import *
@@ -77,6 +78,9 @@ class MainController():
         initbase = np.array([0,3], dtype=np.float32)
         #self.nodes[0].set_pos(initend)
         self.nodes[self.nbr_of_nodes-1].set_pos(initend)
+        safedist = 1
+        relsafedist= 0.01
+        self.ca = CollisionAvoidance.CollisionAvoidance(safedist,relsafedist, k)
 
 
 
@@ -235,6 +239,17 @@ class MainController():
                                                                 self.nodes[self.nodes[i].get_right_neighbor()].get_pos()) #self.nodes[i].get_axlen()
             self.nodes[i].set_x(x3)
             self.nodes[i].set_z(v3)
+
+        for i in range(1,self.nbr_of_nodes-2):
+            for j in range (i+1, self.nbr_of_nodes-1):
+                x1, z1, x2, z2 = self.ca.calc_new_controls(self.nodes[i].get_pos(), self.nodes[i].get_theta(),self.nodes[i].get_x(), self.nodes[i].get_z(),
+                                                      self.nodes[j].get_pos(), self.nodes[j].get_theta(),self.nodes[j].get_x(), self.nodes[j].get_z(), self.dt)
+                self.nodes[i].set_x(x1)
+                self.nodes[i].set_z(z1)
+                self.nodes[j].set_x(x2)
+                self.nodes[j].set_z(z2)
+                print x1, z1, x2, z2
+        for i in range(1, self.nbr_of_nodes - 1):  
             self.nodes[i].update_twist()
             
 
