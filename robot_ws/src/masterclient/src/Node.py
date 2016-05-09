@@ -48,6 +48,12 @@ class Node(object):
         self.z = 0  # temp for testing
         self.theta = 0  # temp for testing
         self.pos = np.array([0, 0], dtype=np.float32)  # temp for testing
+        self.state = np. array([[pos[0]],
+                                [0],
+                                [pos[1]],
+                                [0],
+                                [theta],
+                                [0]])
 
         self.kalman = Kalman.Kalman()
         self.controls = Controls.Controls()
@@ -126,8 +132,12 @@ class Node(object):
             self.recorded_x_positions = np.array([val[0]], dtype=np.float32)
             self.recorded_y_positions = np.array([val[1]], dtype=np.float32)
 
-    def get_type(self):
-        return self.type 
+    def set_state(self, state):
+        self.state = state
+        if (self.type == "End"):
+            self.recorded_positions = np.array([state[0, 0], state[2, 0]])
+            self.recorded_x_positions = np.array([state[0, 0]], dtype=np.float32)
+            self.recorded_y_positions = np.array([state[2, 0]], dtype=np.float32)
 
     def get_x(self):
         """
@@ -143,19 +153,32 @@ class Node(object):
         """
         return self.z
 
-    def get_theta(self):
-        """
+    def get_state(self):
+        return self.state
 
-        :return: current orientation
-        """
-        return self.theta
+    def get_x_pos(self):
+        return self.state[0, 0]
+
+    def get_x_vel(self):
+        return self.state[1, 0]
+
+    def get_y_pos(self):
+        return self.state[2, 0]
+
+    def get_y_vel(self):
+        return self.state[3, 0]
+
+    def get_theta(self):
+        return self.state[4, 0]
+
+    def get_theta_vel(self):
+        return self.state[5, 0]
 
     def get_pos(self):
-        """
+        return np.array([self.get_x_pos(), self.get_y_pos()])
 
-        :return: current position
-        """
-        return self.pos
+    def get_type(self):
+        return self.type     
 
     def get_kalman(self):
         """
@@ -231,6 +254,8 @@ class Node(object):
         :return:
         """
         return self.right_neighbor
+
+
 
     def drive_forward(self, length):
         """
