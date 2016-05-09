@@ -119,12 +119,12 @@ class Node(object):
         :param val: new position
         :return:
         """
+
         self.pos = val
-        #Might not be needed if Base is measured with UWB
-        #if (self.type == "Base" or self.type == "End"):
-        #    self.recorded_positions = val
-        #    self.recorded_x_positions = np.array([val[0]], dtype=np.float32)
-        #    self.recorded_y_positions = np.array([val[1]], dtype=np.float32)
+        if (self.type == "End"):
+            self.recorded_positions = val
+            self.recorded_x_positions = np.array([val[0]], dtype=np.float32)
+            self.recorded_y_positions = np.array([val[1]], dtype=np.float32)
 
     def get_type(self):
         return self.type 
@@ -189,9 +189,10 @@ class Node(object):
                 f = Floats()
                 f = get_coords(1)
                 tmp_pos = f.data.data
-                self.recorded_positions = np.append(self.recorded_positions, tmp_pos)
-                self.recorded_x_positions = np.append(self.recorded_x_positions, tmp_pos[0])
-                self.recorded_y_positions = np.append(self.recorded_y_positions, tmp_pos[1])
+                if len(tmp_pos) == 2:
+                    self.recorded_positions = np.append(self.recorded_positions, tmp_pos)
+                    self.recorded_x_positions = np.append(self.recorded_x_positions, tmp_pos[0])
+                    self.recorded_y_positions = np.append(self.recorded_y_positions, tmp_pos[1])
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))
         return tmp_pos

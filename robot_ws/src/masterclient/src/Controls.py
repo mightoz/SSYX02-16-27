@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def get_rot_dir(theta, curr_pos, tar_pos):
@@ -115,6 +116,7 @@ class Controls(object):
         self.t_z = None
         self.ok_dist = None
 
+
     def initiate(self, x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist):
 
         self.x_min = x_min
@@ -139,7 +141,9 @@ class Controls(object):
         print neighbour_2_pos
         dist1 = neighbour_1_pos - curr_pos
         dist2 = neighbour_2_pos - curr_pos
+        
         return curr_pos + self.k * (dist1 + dist2)
+
 
     def get_trans_magn_1(self, curr_pos, tar_pos, phi):
         """
@@ -168,6 +172,9 @@ class Controls(object):
         :param tar_pos: [x_end, y_end]
         :return: The rotation for the next iteration
         """
+        dist = np.linalg.norm(curr_pos - tar_pos)
+        if dist < self.ok_dist:
+            return 0
         y = tar_pos - curr_pos
         a = np.array([[np.cos(theta), np.sin(theta)],
                       [np.sin(theta), -np.cos(theta)]])
@@ -201,7 +208,7 @@ class Controls(object):
         tar_pos = self.find_next_pos(curr_pos, neighbour_1_pos, neighbour_2_pos)
         next_z = get_rot_dir(theta, curr_pos, tar_pos) * self.get_rot_magn_1(theta, curr_pos, tar_pos)
         next_x = self.get_trans_magn_1(curr_pos, tar_pos, np.abs(next_z * self.t_z))
-        return next_x, next_z
+        return [next_x, next_z, tar_pos[0], tar_pos[1]]
 
     def set_x_max(self, val):
         """
