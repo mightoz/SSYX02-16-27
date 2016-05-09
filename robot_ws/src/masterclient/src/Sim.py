@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import Robot
 
 sigma_meas = 0.05
-n_iter = 50
+n_iter = 5
 n_rob = 3
 n_iter_no_corr = n_rob-1
 
@@ -49,6 +49,7 @@ for j in range(0, n_iter):
             new_state2 = robot[i].get_kalman().predict(true_robot[i].get_state(),
                                                        robot[i].get_x(), robot[i].get_z(), dt)
             robot[i].set_state(new_state2)
+            plt.plot(robot[i].get_x_pos(), robot[i].get_y_pos(), 'co')
         else:
             # We should have a method call that measures the robot's position here
             meas_pos = true_robot[i].get_pos()+np.random.normal(0, true_robot[i].get_kalman().get_sigma_meas(), 2)
@@ -56,7 +57,7 @@ for j in range(0, n_iter):
                                                        robot[i].get_x(), robot[i].get_z(), dt)
             robot[i].set_state(new_state2)
             plt.plot(meas_pos[0], meas_pos[1], 'ro')
-        plt.plot(robot[i].get_x_pos(), robot[i].get_y_pos(), 'ko')
+            plt.plot(robot[i].get_x_pos(), robot[i].get_y_pos(), 'mo')
     for i in range(0, n_rob):  # Calculate new controls at time k
         control_noise_t = np.random.normal(0, robot[i].get_kalman().get_sigma_x())
         control_noise_r = np.random.normal(0, robot[i].get_kalman().get_sigma_z())

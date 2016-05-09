@@ -83,7 +83,6 @@ class Kalman(object):
                                [theta + z*time_step],
                                [z]])  # predicted state
         self.q += self.get_noise(theta, x, z, time_step)
-        print (x_k_k1-x_k1_k1)[0, 0], (x_k_k1-x_k1_k1)[2, 0]
         return x_k_k1
 
     def correct(self, x_k1_k1, pos_meas, x, z, time_step):
