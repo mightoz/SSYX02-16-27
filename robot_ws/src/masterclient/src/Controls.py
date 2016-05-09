@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def get_rot_dir(theta, curr_pos, tar_pos):
@@ -43,7 +44,7 @@ def get_trans_magn_2(current, target, t):
     :param t:
     :return:
     """
-    length_to_target = np.linalg.norm(target-current)
+    length_to_target = np.linalg.norm(target - current)
 
     # X function of Z and length
 
@@ -72,24 +73,24 @@ def get_rot_magn_2(theta, current, target, t):
 
     a = np.array([[np.cos(theta), np.sin(theta)],
                   [np.sin(theta), -np.cos(theta)]])
-    b = target-current
+    b = target - current
     (alpha, beta) = np.linalg.solve(a, b)
     (alpha, beta) = (np.abs(alpha), np.abs(beta))
-    length_to_target = np.linalg.norm(target-current)
+    length_to_target = np.linalg.norm(target - current)
 
     phi = np.arctan(beta / alpha)
 
-    x = np.arctan((target[1]-current[1])/(target[0]-current[0]))
+    x = np.arctan((target[1] - current[1]) / (target[0] - current[0]))
 
-    if np.cos(theta-x) < 0:
+    if np.cos(theta - x) < 0:
         print ('phi', phi)
-        phi = np.pi-phi
+        phi = np.pi - phi
 
-    if phi > (45*np.pi/180):
+    if phi > (45 * np.pi / 180):
         za = 1
-    elif phi > (20*np.pi/180):
+    elif phi > (20 * np.pi / 180):
         za = 0.5
-    elif phi > (5*np.pi/180):
+    elif phi > (5 * np.pi / 180):
         za = 0.25
     else:
         print "z was zero"
@@ -106,13 +107,14 @@ def get_rot_magn_2(theta, current, target, t):
 
 class Controls(object):
     def __init__(self):
+
         self.x_min = 0.2  # Minimm speed forwards
         self.x_max = 0  # Maximum speed forwards
         self.z_min = 0  # Minimum rotation speed, absolute value
-        self.z_max = 0.5  # Maximum rotation speed, absolute value
-        self.k = 0.5  # Gradient step
-        self.t_x = 2  # Speed factor forward, lower factor = higher speed, !=0
-        self.t_z = 2  # Speed factor rotation, -||-  !=0
+        self.z_max = 1  # Maximum rotation speed, absolute value
+        self.k = 0.25  # Gradient step
+        self.t_x = 1  # Speed factor forward, lower factor = higher speed, !=0
+        self.t_z = 1  # Speed factor rotation, -||-  !=0
         self.ok_dist = 0.05  # Minimum distance to next targetpos, k affects this
 
     def find_next_pos(self, curr_pos, neighbour_1_pos, neighbour_2_pos):
@@ -123,10 +125,9 @@ class Controls(object):
         :param neighbour_2_pos: your left neighbour
         :return: the next target position
         """
-        print neighbour_1_pos
-        print neighbour_2_pos
         dist1 = neighbour_1_pos - curr_pos
         dist2 = neighbour_2_pos - curr_pos
+
         return curr_pos + self.k * (dist1 + dist2)
 
     def get_trans_magn_1(self, curr_pos, tar_pos, phi):
@@ -156,6 +157,9 @@ class Controls(object):
         :param tar_pos: [x_end, y_end]
         :return: The rotation for the next iteration
         """
+        dist = np.linalg.norm(curr_pos - tar_pos)
+        if dist < self.ok_dist:
+            return 0
         y = tar_pos - curr_pos
         a = np.array([[np.cos(theta), np.sin(theta)],
                       [np.sin(theta), -np.cos(theta)]])
@@ -189,7 +193,7 @@ class Controls(object):
         tar_pos = self.find_next_pos(curr_pos, neighbour_1_pos, neighbour_2_pos)
         next_z = get_rot_dir(theta, curr_pos, tar_pos) * self.get_rot_magn_1(theta, curr_pos, tar_pos)
         next_x = self.get_trans_magn_1(curr_pos, tar_pos, np.abs(next_z * self.t_z))
-        return next_x, next_z
+        return [next_x, next_z, tar_pos[0], tar_pos[1]]
 
     def set_x_max(self, val):
         """
@@ -307,7 +311,7 @@ class Controls(object):
 
         :return: minimum value of angular velocity
         """
-        return self. z_min
+        return self.z_min
 
     def get_k(self):
         """

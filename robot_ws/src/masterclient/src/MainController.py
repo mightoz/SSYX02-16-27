@@ -15,6 +15,7 @@ import math
 import matplotlib.pyplot as plt
 import Node
 import time
+import CollisionAvoidance
 
 from robotclient.srv import *
 from masterclient.srv import *
@@ -44,7 +45,13 @@ class MainController():
 
     def __init__(self, nbr_of_nodes):
         self.calls = 0
-        self.dt = 0.5  # Timesteps for loop, used in kalmanpredict
+        self.dt = 0.25  # Timesteps for loop, used in kalmanpredict
+
+        self.finishedalign2 = 0
+        self.reachedalign2 = 0
+        self.testplotX = []
+        self.testplotY = []
+
 
         #Instantiate Nodes
         self.nbr_of_nodes = nbr_of_nodes
@@ -61,11 +68,17 @@ class MainController():
         initbase = np.array([0,3], dtype=np.float32)
         #self.nodes[0].set_pos(initend)
         self.nodes[self.nbr_of_nodes-1].set_pos(initend)
+        safedist = 1
+        relsafedist= 0.01
+        self.ca = CollisionAvoidance.CollisionAvoidance(safedist,relsafedist, k)
+
 
 
 
         #s = rospy.Service('get_coordEnd', BaseEndGetCoord, self.handle_get_end) #Service for changing End Coords
         #s = rospy.Service('get_coordBase', BaseEndGetCoord, self.handle_get_base)  #Service for changing Base Coords
+        self.iteratorCalled = time.time()
+        self.iteratorFinished = time.time()
         service = rospy.Service('iterator', Iterator, self.align_robots) #Iterator service called whenever an iteration of the program is wanted
         rospy.spin() 
         rospy.on_shutdown(self.terminator) #On CTRL+C function call.
@@ -143,7 +156,7 @@ class MainController():
                     self.nodes[i].set_theta(2*np.pi-phi)
                 print "This is the orientation: " , self.nodes[i].get_theta()*180/np.pi
             #End of initation
- 
+        #self.finishedalign2 = time.time()
 
     def align_robots(self, data):
         # Add update Base/End position?
@@ -158,9 +171,9 @@ class MainController():
             self.calls = self.calls + 1
 
         base_pos = np.array(self.nodes[0].measure_coordinates(), dtype=np.float32)
-        print "This is updated base" , base_pos
         if (np.size(base_pos) == 2):
             self.nodes[0].set_pos(base_pos) #Update position of base
+            #print "This is updated base" , base_pos
         #FOR END POS
         #end_pos = np.array(self.nodes[self.nbr_of_nodes-1].measure_coordinates(), dtype=np.float32)
         #print "This is updated base" , end_pos
@@ -184,12 +197,17 @@ class MainController():
                 # TODO: ONLY CHECK AND THEN MOVE.
 
     def align_robots_2(self):
+        self.iteratorFinished = self.iteratorCalled
+        self.iteratorCalled = time.time()
+        print "Time between align_robots call: " ,self.iteratorCalled - self.iteratorFinished
+        exectime = self.iteratorCalled-self.iteratorFinished #self.reachedalign2 - self.finishedalign2
+        #print "THis is exectime", exectime
         corr_idx = 1+ np.mod(self.calls, self.nbr_of_nodes - 2)  # Decide which robot should correct its position
         for i in range(1, self.nbr_of_nodes - 1):  # Calculate/Estimate new state
             if i != corr_idx:
                 x2, v2 = self.nodes[i].get_kalman().predict(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
                                                             self.nodes[i].get_x(), self.nodes[i].get_z(),
-                                                            self.dt)
+                                                            exectime) #self.dt)
                 self.nodes[i].set_theta(v2)
                 self.nodes[i].set_pos(np.array([x2[0, 0], x2[2, 0]]))
                 print "Robot %s predicts" % i
@@ -201,36 +219,62 @@ class MainController():
                 if (np.size(meas_pos) != 2):
                     x2, v2 = self.nodes[i].get_kalman().predict(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
                                                             self.nodes[i].get_x(), self.nodes[i].get_z(),
-                                                            self.dt)
+                                                            exectime) #self.dt)
                     print "Robot %s predicts" % i
                 else:
                     print "this was meas_pos", meas_pos
                     x2, v2 = self.nodes[i].get_kalman().correct(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
                                                                 meas_pos, self.nodes[i].get_x(), self.nodes[i].get_z(),
-                                                                self.dt)
+                                                                exectime) #self.dt)
+                    print "x2=",x2, "v2=",v2
                 self.nodes[i].set_theta(v2)
                 self.nodes[i].set_pos(np.array([x2[0, 0], x2[2, 0]]))
                 print "Robot %s corrects" % i
     
-    
         for i in range(1, self.nbr_of_nodes - 1):  # Calculate new controls at time k
-            x3, v3 = self.nodes[i].get_controls().calc_controls(self.nodes[i].get_theta(), self.nodes[i].get_pos(),
-                                                                self.nodes[self.nodes[i].get_left_neighbor()].get_pos(),
-                                                                self.nodes[self.nodes[i].get_right_neighbor()].get_pos()) #self.nodes[i].get_axlen()
-            self.nodes[i].set_x(x3)
-            self.nodes[i].set_z(v3)
+            x3 = self.nodes[i].get_controls().calc_controls(self.nodes[i].get_theta(), self.nodes[i].get_pos(), 
+                                                                    self.nodes[self.nodes[i].get_left_neighbor()].get_pos(),
+                                                                    self.nodes[self.nodes[i].get_right_neighbor()].get_pos()) ##self.nodes[i].get_axlen()
+            self.testplotX += [x3[2]]
+            self.testplotY += [x3[3]]
+            #plt.plot(x3[2], x3[3], 'go')
+            self.nodes[i].set_x(x3[0])
+            self.nodes[i].set_z(x3[1])
+
+        for i in range(1,self.nbr_of_nodes-2):
+            for j in range (i+1, self.nbr_of_nodes-1):
+                x1, z1, x2, z2 = self.ca.calc_new_controls(self.nodes[i].get_pos(), self.nodes[i].get_theta(),self.nodes[i].get_x(), self.nodes[i].get_z(),
+                                                      self.nodes[j].get_pos(), self.nodes[j].get_theta(),self.nodes[j].get_x(), self.nodes[j].get_z(),  exectime) #self.dt)
+                self.nodes[i].set_x(x1)
+                self.nodes[i].set_z(z1)
+                self.nodes[j].set_x(x2)
+                self.nodes[j].set_z(z2)
+                print x1, z1, x2, z2
+        for i in range(1, self.nbr_of_nodes - 1):  
             self.nodes[i].update_twist()
-            
 
     def terminator(self):
         # For printing, colors hardcoded
-        for i in range(0, self.nbr_of_nodes):
-            print "Recorded positions for Node %s are %s" % (self.nodes[i], self.nodes[i].get_recorded_positions())
-            print "Recorded X positions for Node %s are %s" % (self.nodes[i], self.nodes[i].get_recorded_x_positions())
-            print "Recorded Y positions for Node %s are %s" % (self.nodes[i], self.nodes[i].get_recorded_y_positions())
-            name = "%s position" % self.nodes[i].get_type()
-            plt.plot(self.nodes[i].get_recorded_x_positions(), self.nodes[i].get_recorded_y_positions(), ".", label=name, color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
 
+        #for i in range(1, self.nbr_of_nodes-1):
+
+        name = "%s position" % self.nodes[1].get_type()
+        name1 = "%s position" % "Target" 
+        #    if i == 1:
+        path = "%s path" % self.nodes[1].get_type()
+        plt.plot(self.nodes[1].get_recorded_x_positions(), self.nodes[1].get_recorded_y_positions(), 'r', label=path) #color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
+        plt.plot(self.nodes[1].get_recorded_x_positions(), self.nodes[1].get_recorded_y_positions(), "ko", label=name+str(1))
+        name = "%s position" % self.nodes[2].get_type()
+        path = "%s path" % self.nodes[2].get_type()
+        plt.plot(self.nodes[2].get_recorded_x_positions(), self.nodes[2].get_recorded_y_positions(), 'r' ) #color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
+        plt.plot(self.nodes[2].get_recorded_x_positions(), self.nodes[2].get_recorded_y_positions(), "ko", label=name+str(2))
+        name = "%s position" % self.nodes[0].get_type()
+        plt.plot(self.nodes[0].get_recorded_x_positions(), self.nodes[0].get_recorded_y_positions(), "mo", label=name)
+        name = "%s position" % self.nodes[3].get_type()
+        plt.plot(self.nodes[3].get_recorded_x_positions(), self.nodes[3].get_recorded_y_positions(), "co", label=name)
+
+
+        plt.plot(self.testplotX, self.testplotY, "go", label=name1)
         plt.plot(-1, 1, 'x', label="Reference position 1", color = 'g') #number 1
         plt.plot(2, 0, 'x', label="Reference position 2", color = 'r') #number 2
         plt.plot(1, -2, 'x', label="Reference position 3", color = 'b') #number 3
@@ -250,13 +294,26 @@ class MainController():
         right = robot.get_right_neighbor()
         print left
         print right
-        correct_position = (self.nodes[left].measure_coordinates() + self.nodes[right].measure_coordinates()) / 2  # Calculates correct position
+        ###TODO FIX ERROR HANDLING HERE + TIMEOUT
+        okposleft = False
+        okposright = False
+        while not(okposleft):
+            lneigh = np.array(self.nodes[left].measure_coordinates(), dtype=np.float32)
+            if (np.size(lneigh) == 2):
+                okposleft = True
+        
+        while not(okposright):
+            rneigh = np.array(self.nodes[right].measure_coordinates(), dtype=np.float32)
+            if (np.size(rneigh) == 2):
+                okposright = True
+
+        correct_position = (lneigh + rneigh) / 2  # Calculates correct position
         return correct_position
 
     # Move a robot from point A to B
     def move_a_to_b(self, robot, target):
         print "Moving , activerobot: ", robot
-        initial_pos = robot.measure_coordinates()
+        initial_pos = np.array(robot.measure_coordinates(), dtype=np.float32)
         robot.drive_forward(0.1)
         self.run_next_segment(robot, initial_pos, target)
 
@@ -264,7 +321,7 @@ class MainController():
 
     def run_next_segment(self, robot, previous_pos, target_pos):
         target = target_pos
-        current = robot.measure_coordinates()
+        current = np.array(robot.measure_coordinates(), dtype=np.float32)
 
         if (not (((np.absolute(target[0] - current[0])) <= 0.15) & (
                     (np.absolute(target[1] - current[1])) <= 0.15))):
@@ -290,18 +347,19 @@ class MainController():
 
         direction = 0
         # Calculate if robot should turn right or left
-        k_targ = (previous[1] - target[1]) / (previous[0] - target[0])  # (yl-yt)/(xl-xt)
-        k_move = (previous[1] - current[1]) / (previous[0] - current[0])  # (yc-yl)/(xc-xl)
-        if (previous[0] < 0 < previous[1]) or (previous[0] > 0 > previous[1]):
-            if k_move >= k_targ:
-                direction = -1
+        if np.abs(previous[0] - target[0]) > 1e-40 or  np.abs(previous[0] - current[0]) > 1e-40:  
+            k_targ = (previous[1] - target[1]) / (previous[0] - target[0])  # (yl-yt)/(xl-xt)
+            k_move = (previous[1] - current[1]) / (previous[0] - current[0])  # (yc-yl)/(xc-xl)
+            if (previous[0] < 0 < previous[1]) or (previous[0] > 0 > previous[1]):
+                if k_move >= k_targ:
+                    direction = -1
+                else:
+                    direction = 1
             else:
-                direction = 1
-        else:
-            if k_move < k_targ:
-                direction = 1
-            else:
-                direction = -1
+                if k_move < k_targ:
+                    direction = 1
+                else:
+                    direction = -1
         """
         # Calculate degrees to turn
         theta = np.arccos(np.sum((target-fst)*(snd-fst))/(np.sqrt(np.sum((target-fst)**2))*np.sqrt(np.sum((snd-fst)**2))))
