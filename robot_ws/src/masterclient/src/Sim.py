@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import Robot
 
 sigma_meas = 0.05
-n_iter = 60
+n_iter = 50
 n_rob = 3
 n_iter_no_corr = n_rob-1
 
