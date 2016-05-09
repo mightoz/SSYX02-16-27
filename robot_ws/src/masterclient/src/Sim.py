@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Robot
 
-sigma_meas = 0.5
+sigma_meas = 0.05
 n_iter = 60
 n_rob = 3
 n_iter_no_corr = n_rob-1
@@ -11,8 +11,8 @@ x_max = 0.5
 x_min = 0.05
 z_max = 1
 z_min = 0
-sigma_x = 0.5
-sigma_z = 0.25
+sigma_x = 0.05
+sigma_z = 0.025
 x = 0
 z = 0
 dt = 0.5
@@ -31,12 +31,8 @@ for i in range(0, n_rob):
     robot[i].set_kalman(sigma_meas, sigma_x, sigma_z)
     robot[i].set_controls(x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist)
     true_robot += [Robot.Robot(x, z, robot[i].get_theta(), robot[i].get_pos())]
-    true_robot[i].set_kalman(robot[i].get_kalman().get_sigma_meas(), robot[i].get_kalman().get_sigma_x(),
-                             robot[i].get_kalman().get_sigma_z())
-    true_robot[i].set_controls(robot[i].get_controls().get_x_min(), robot[i].get_controls().get_x_max(),
-                               robot[i].get_controls().get_z_min(), robot[i].get_controls().get_z_max(),
-                               robot[i].get_controls().get_k(), robot[i].get_controls().get_t_x(),
-                               robot[i].get_controls().get_t_z(), robot[i].get_controls().get_ok_dist())
+    true_robot[i].set_kalman(sigma_meas, sigma_x, sigma_z)
+    true_robot[i].set_controls(x_min, x_max, z_min, z_max, k, t_x, t_z, ok_dist)
 positions2 = np.array([[-0.2, -4], [-4, 2]])
 base = Robot.Robot(0, 0, 0, positions2[0])
 end_node = Robot.Robot(0, 0, 0, positions2[1])

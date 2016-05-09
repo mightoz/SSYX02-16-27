@@ -185,7 +185,7 @@ class Kalman(object):
         (where the function has decreased by a factor exp(-1)) of the control
         :return:
         """
-        if self.std_meas > 1e-40:
+        if val > 1e-40:
             self.std_meas = val
         else:
             self.std_meas = 1e-40
@@ -200,7 +200,7 @@ class Kalman(object):
         the gauss radius (where the function has decreased by a factor exp(-1)) of the control
         :return:
         """
-        if self.std_dev_x > 1e-40:
+        if val > 1e-40:
             self.std_dev_x = val
         else:
             self.std_dev_x = 1e-40
@@ -212,7 +212,7 @@ class Kalman(object):
         the gauss radius (where the function has decreased by a factor exp(-1)) of the control
         :return:
         """
-        if self.std_dev_z > 1e-40:
+        if val > 1e-40:
             self.std_dev_z = val
         else:
             self.std_dev_z = 1e-40
