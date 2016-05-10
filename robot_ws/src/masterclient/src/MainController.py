@@ -77,7 +77,7 @@ class MainController():
         rospy.spin()
         rospy.on_shutdown(self.terminator)  # On CTRL+C function call.
 
-    def callibrate(self):
+    def calibrate(self):
         """
         Callibrates robots in area and updates inital position and theta accordingly
         """
@@ -156,7 +156,7 @@ class MainController():
         # Add update Base/End position?
         print "This is number of calls", self.calls
         if self.calls == 0:
-            self.callibrate()
+            self.calibrate()
         if (data.data.data == "align1"):
             self.align_robots_1()
             self.calls = self.calls + 1
