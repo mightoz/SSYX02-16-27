@@ -192,10 +192,10 @@ def __safe_dist_grad__(q, pos_1, theta_1, x_1, z_1, t_1):
 
 class CollisionAvoidance(object):
 
-    def __init__(self, abs_dist_tol, rel_dist_tol, k):
+    def __init__(self, abs_dist_tol, rel_dist_tol):
         self.abs_dist_tol = abs_dist_tol
         self.rel_dist_tol = rel_dist_tol
-        self.k = k
+        self.k = 0.5
 
     def gradient_descent(self, pos_1, theta_1, x_1, z_1, pos_2, theta_2, x_2, z_2, time_exec, ret_on_col):
         t_2 = time_exec/2.0

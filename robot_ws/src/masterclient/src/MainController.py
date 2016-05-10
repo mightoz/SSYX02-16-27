@@ -63,10 +63,10 @@ class MainController():
         initend = np.array([0, -2], dtype=np.float32)
         initbase = np.array([0, 3], dtype=np.float32)
         # self.nodes[0].set_pos(initend)
-        self.nodes[self.nbr_of_nodes - 1].set_pos(initend)
+        self.nodes[self.nbr_of_nodes - 1].set_pos(initend)  # Set position of end node
         safedist = 1
         relsafedist = 0.01
-        self.ca = CollisionAvoidance.CollisionAvoidance(safedist, relsafedist, k)
+        self.ca = CollisionAvoidance.CollisionAvoidance(safedist, relsafedist)
 
         # s = rospy.Service('get_coordEnd', BaseEndGetCoord, self.handle_get_end) #Service for changing End Coords
         # s = rospy.Service('get_coordBase', BaseEndGetCoord, self.handle_get_base)  #Service for changing Base Coords
@@ -107,7 +107,7 @@ class MainController():
                             print "Failed to get inital position for robot:", i
                 except rospy.ServiceException as exc:
                     print("Service did not process request: " + str(exc))
-                print first_pos
+                print "First pos: ", first_pos
                 # Movment for robots before second inital measurement
                 srv = '/moveRobot' + str(i)
                 rospy.wait_for_service(srv)
@@ -134,9 +134,7 @@ class MainController():
                         print "Failed to get inital position for robot:", i
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))
-            # Set latest measured position to position
-            self.nodes[i].set_pos(second_pos)
-            print second_pos
+            print "Second pos:", second_pos
 
             # If a robot, calculate the orientation in the room
             if i != 0 and i != self.nbr_of_nodes - 1:
@@ -145,12 +143,16 @@ class MainController():
                 if np.linalg.norm(A) > 1e-40:
                     phi = np.arccos(np.dot(A, B) / (np.linalg.norm(A) * np.linalg.norm(B)))
                 if second_pos[1] >= first_pos[1]:
-                    self.nodes[i].set_theta(phi)
+                    angle = phi
                 else:
-                    self.nodes[i].set_theta(2 * np.pi - phi)
-                print "This is the orientation: ", self.nodes[i].get_theta() * 180 / np.pi
-                # End of initation
-                # self.finishedalign2 = time.time()
+                    angle = 2 * np.pi - phi
+                # update state
+                self.nodes[i].set_state(np.array([[second_pos[0]], [self.nodes[i].get_x_vel()],
+                                                  [second_pos[1]], [self.nodes[i].get_y_vel()],
+                                                  [angle], [self.nodes[i].get_theta_vel()]]))
+            else:
+                # update pos
+                self.nodes[i].set_pos(second_pos)
 
     def align_robots(self, data):
         # Add update Base/End position?
@@ -268,9 +270,9 @@ class MainController():
         plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(), "ko",
                  label=name + str(2))
         name = "%s position" % self.nodes[0].get_type()
-        plt.plot(self.nodes[0].get_corrected_x_positions(), self.nodes[0].get_corrected_y_positions(), "mo", label=name)
+        plt.plot(self.nodes[0].get_measured_x_positions(), self.nodes[0].get_measured_y_positions(), "mo", label=name)
         name = "%s position" % self.nodes[3].get_type()
-        plt.plot(self.nodes[3].get_corrected_x_positions(), self.nodes[3].get_corrected_y_positions(), "co", label=name)
+        plt.plot(self.nodes[3].get_measured_x_positions(), self.nodes[3].get_measured_y_positions(), "co", label=name)
 
         plt.plot(self.testplotX, self.testplotY, "go", label=name1)
         plt.plot(-1, 1, 'x', label="Reference position 1", color='g')  # number 1

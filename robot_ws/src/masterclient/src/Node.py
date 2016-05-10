@@ -52,15 +52,12 @@ class Node(object):
 
         self.x = 0  # velocity
         self.z = 0  # angular velocity
-        self.theta = 0  # direction
-        self.pos = np.array([0, 0], dtype=np.float32)  # temp for testing
-        self.state = np.array([[self.pos[0]], [0], [self.pos[1]], [0], [self.theta], [
+        self.state = np.array([[0], [0], [0], [0], [0], [
             0]])  # state = x_position, x_velocity, y_position, y_velocity, theta, theta_velocity(rotation velocity)
         # borde inte i state vara z?
 
         self.kalman = Kalman.Kalman()
         self.controls = Controls.Controls()
-
 
     def set_x(self, val):
         """
@@ -79,11 +76,31 @@ class Node(object):
         self.z = val
 
     def set_state(self, state):
-        self.state = state
+        if self.type == "Robot":
+            print "State changed for robot."
+            self.state = state
+        else:  # If base or end, only update position. Rest of params should be immutable.
+            print "State changed for End or Base."
+            self.state[0, 0] = state[0, 0]
+            self.state[2, 0] = state[2, 0]
+
+        self.corrected_positions = np.append(self.corrected_positions, self.get_pos())
+        self.corrected_x_positions = np.append(self.corrected_x_positions, self.get_x_pos())
+        self.corrected_y_positions = np.append(self.corrected_y_positions, self.get_y_pos())
+
+    def set_pos(self, pos):
+        """
+        Changes position of node
+        :param pos: position
+        :return:
+        """
+        self.state[0, 0] = pos[0]
+        self.state[2, 0] = pos[1]
+        # Log position of end node (Robot and base are logged when they change state).
         if self.type == "End":
-            self.corrected_positions = np.array([state[0, 0], state[2, 0]])
-            self.corrected_x_positions = np.array([state[0, 0]], dtype=np.float32)
-            self.corrected_y_positions = np.array([state[2, 0]], dtype=np.float32)
+            self.measured_positions = np.append(self.measured_positions, self.get_pos())
+            self.measured_x_positions = np.append(self.measured_x_positions, self.get_x_pos())
+            self.measured_y_positions = np.append(self.measured_y_positions, self.get_y_pos())
 
     def get_x(self):
         """
@@ -149,7 +166,7 @@ class Node(object):
         tmp_pos = np.array([],
                            dtype=np.float32)  # TODO: Was np.empty for some reason. If problems are caused, check here when debugging.
         if self.type == "End":
-            tmp_pos = self.pos
+            tmp_pos = self.get_pos()  # self.pos
         else:
             srv = 'get_coord' + str(self.node)
             rospy.wait_for_service(srv)

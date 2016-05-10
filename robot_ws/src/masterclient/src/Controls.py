@@ -108,8 +108,8 @@ def get_rot_magn_2(theta, current, target, t):
 class Controls(object):
     def __init__(self):
 
-        self.x_min = 0.2  # Minimm speed forwards
-        self.x_max = 0  # Maximum speed forwards
+        self.x_min = 0  # Minimm speed forwards
+        self.x_max = 0.2  # Maximum speed forwards
         self.z_min = 0  # Minimum rotation speed, absolute value
         self.z_max = 1  # Maximum rotation speed, absolute value
         self.k = 0.25  # Gradient step
