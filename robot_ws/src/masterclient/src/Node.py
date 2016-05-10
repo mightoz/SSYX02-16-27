@@ -40,52 +40,28 @@ class Node(object):
             self.right_neighbor = num + 1
 
         self.node = num
-        self.recorded_positions = np.array([], dtype=np.float32)
-        self.recorded_x_positions = np.array([], dtype=np.float32)
-        self.recorded_y_positions = np.array([], dtype=np.float32)
+        # All positions measured with UWB-radios.
+        self.measured_positions = np.array([], dtype=np.float32)
+        self.measured_x_positions = np.array([], dtype=np.float32)
+        self.measured_y_positions = np.array([], dtype=np.float32)
 
-        self.x = 0  # temp for testing
-        self.z = 0  # temp for testing
-        self.theta = 0  # temp for testing
+        # All positions corrected with kalman + measurements.
+        self.corrected_positions = np.array([], dtype=np.float32)
+        self.corrected_x_positions = np.array([], dtype=np.float32)
+        self.corrected_y_positions = np.array([], dtype=np.float32)
+
+        self.x = 0  # velocity
+        self.z = 0  # angular velocity
+        self.theta = 0  # direction
         self.pos = np.array([0, 0], dtype=np.float32)  # temp for testing
-        self.state = np. array([[pos[0]],
-                                [0],
-                                [pos[1]],
-                                [0],
-                                [theta],
-                                [0]])
+        self.state = np.array([[self.pos[0]], [0], [self.pos[1]], [0], [self.theta], [
+            0]])  # state = x_position, x_velocity, y_position, y_velocity, theta, theta_velocity(rotation velocity)
+        # borde inte i state vara z?
 
         self.kalman = Kalman.Kalman()
         self.controls = Controls.Controls()
 
-        """
-        #TODO: PLACE WHERE IT SHOULD BE
-        :param sigma_meas: standard deviation of measurement noise. sqrt(2) times the gauss radius
-        (where the function has decreased by a factor exp(-1)) of the control
-        :param sigma_x: standard deviation of translational noise relative to 1 (m/s for example). sqrt(2) times
-        the gauss radius (where the function has decreased by a factor exp(-1)) of the control
-        :param sigma_z: standard deviation of rotational noise relative to 1 (rad/s for example). sqrt(2) times
-        the gauss radius (where the function has decreased by a factor exp(-1)) of the control
-        :return:
 
-        self.kalman.set_sigma_x(sigma_x)
-        self.kalman.set_sigma_z(sigma_z)
-        self.kalman.set_sigma_meas(sigma_meas)
-        """
-
-        """
-        #TODO: ADD TO APPROPRIATE PLACE
-        :param x_min: minimum velocity [m/s]
-        :param x_max: maximum velocity [m/s]
-        :param z_min: minimum angular velocity [rad/s]
-        :param z_max: maximum angular velocity [rad/s]
-        :param k: gradient descent coefficient (0<k<1)
-        :param t_x: time to reach target pos if as if the robot was facing its target pos
-        :param t_z: time to rotate to face target pos
-        :param ok_dist: minimum distance to target pos that will make the robot move
-        :return:
-
-        """
     def set_x(self, val):
         """
 
@@ -102,33 +78,12 @@ class Node(object):
         """
         self.z = val
 
-    def set_theta(self, val):
-        """
-
-        :param val: new orientation
-        :return:
-        """
-        self.theta = val
-
-    def set_pos(self, val):
-        """
-
-        :param val: new position
-        :return:
-        """
-
-        self.pos = val
-        if (self.type == "End"):
-            self.recorded_positions = val
-            self.recorded_x_positions = np.array([val[0]], dtype=np.float32)
-            self.recorded_y_positions = np.array([val[1]], dtype=np.float32)
-
     def set_state(self, state):
         self.state = state
-        if (self.type == "End"):
-            self.recorded_positions = np.array([state[0, 0], state[2, 0]])
-            self.recorded_x_positions = np.array([state[0, 0]], dtype=np.float32)
-            self.recorded_y_positions = np.array([state[2, 0]], dtype=np.float32)
+        if self.type == "End":
+            self.corrected_positions = np.array([state[0, 0], state[2, 0]])
+            self.corrected_x_positions = np.array([state[0, 0]], dtype=np.float32)
+            self.corrected_y_positions = np.array([state[2, 0]], dtype=np.float32)
 
     def get_x(self):
         """
@@ -169,7 +124,7 @@ class Node(object):
         return np.array([self.get_x_pos(), self.get_y_pos()])
 
     def get_type(self):
-        return self.type     
+        return self.type
 
     def get_kalman(self):
         """
@@ -188,12 +143,12 @@ class Node(object):
     def measure_coordinates(self):
         """
 
-        :return: measured position if the node
+        :return: if not end node, measures position with UWB-radios and returns it. If end, returns current position.
         """
-        # Perhaps not empty, returns weirds
-        tmp_pos = np.empty([], dtype=np.float32)
-        #Comment this out if END has UWB
-        if self.type == "End": #self.type == "Base" or
+
+        tmp_pos = np.array([],
+                           dtype=np.float32)  # TODO: Was np.empty for some reason. If problems are caused, check here when debugging.
+        if self.type == "End":
             tmp_pos = self.pos
         else:
             srv = 'get_coord' + str(self.node)
@@ -203,34 +158,56 @@ class Node(object):
                 f = Floats()
                 f = get_coords(1)
                 tmp_pos = f.data.data
+                # If measurement was successful, add it to list of all measurements
                 if len(tmp_pos) == 2:
-                    self.recorded_positions = np.append(self.recorded_positions, tmp_pos)
-                    self.recorded_x_positions = np.append(self.recorded_x_positions, tmp_pos[0])
-                    self.recorded_y_positions = np.append(self.recorded_y_positions, tmp_pos[1])
+                    self.measured_positions = np.append(self.measured_positions, tmp_pos)
+                    self.measured_x_positions = np.append(self.measured_x_positions, tmp_pos[0])
+                    self.measured_y_positions = np.append(self.measured_y_positions, tmp_pos[1])
             except rospy.ServiceException as exc:
                 print("Service did not process request: " + str(exc))
         return tmp_pos
 
-    def get_recorded_positions(self):
+    def get_measured_positions(self):
         """
 
-        :return:
+        :return: measured positions
         """
-        return self.recorded_positions
+        return self.measured_positions
 
-    def get_recorded_x_positions(self):
-        """
-
-        :return:
-        """
-        return self.recorded_x_positions
-
-    def get_recorded_y_positions(self):
+    def get_measured_x_positions(self):
         """
 
-        :return:
+        :return: measured x positions
         """
-        return self.recorded_y_positions
+        return self.measured_x_positions
+
+    def get_measured_y_positions(self):
+        """
+
+        :return: measured y positions
+        """
+        return self.measured_y_positions
+
+    def get_corrected_positions(self):
+        """
+
+        :return: corrected positions
+        """
+        return self.corrected_positions
+
+    def get_corrected_x_positions(self):
+        """
+
+        :return: corrected x positions
+        """
+        return self.corrected_x_positions
+
+    def get_corrected_y_positions(self):
+        """
+
+        :return: corrected y positions
+        """
+        return self.corrected_y_positions
 
     def get_left_neighbor(self):
         """
@@ -245,8 +222,6 @@ class Node(object):
         :return:
         """
         return self.right_neighbor
-
-
 
     def drive_forward(self, length):
         """

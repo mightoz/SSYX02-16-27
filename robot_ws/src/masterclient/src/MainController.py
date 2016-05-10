@@ -205,9 +205,12 @@ class MainController():
         corr_idx = 1+ np.mod(self.calls, self.nbr_of_nodes - 2)  # Decide which robot should correct its position
         for i in range(1, self.nbr_of_nodes - 1):  # Calculate/Estimate new state
             if i != corr_idx:
-                x2, v2 = self.nodes[i].get_kalman().predict(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
-                                                            self.nodes[i].get_x(), self.nodes[i].get_z(),
-                                                            exectime) #self.dt)
+                new_state2 = self.nodes[i].get_kalman().predict(self.nodes[i].get_state(), self.nodes[i].get_x(), self.nodes[i].get_z(),
+                                                            exectime)
+                self.nodes[i].set_state(new_state2)
+               #x2, v2 = self.nodes[i].get_kalman().predict(self.nodes[i].get_pos(), self.nodes[i].get_theta(),
+                                                           # self.nodes[i].get_x(), self.nodes[i].get_z(),
+                                                            #exectime) #self.dt)
                 self.nodes[i].set_theta(v2)
                 self.nodes[i].set_pos(np.array([x2[0, 0], x2[2, 0]]))
                 print "Robot %s predicts" % i
@@ -262,16 +265,16 @@ class MainController():
         name1 = "%s position" % "Target" 
         #    if i == 1:
         path = "%s path" % self.nodes[1].get_type()
-        plt.plot(self.nodes[1].get_recorded_x_positions(), self.nodes[1].get_recorded_y_positions(), 'r', label=path) #color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
-        plt.plot(self.nodes[1].get_recorded_x_positions(), self.nodes[1].get_recorded_y_positions(), "ko", label=name+str(1))
+        plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), 'r', label=path) #color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
+        plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), "ko", label=name + str(1))
         name = "%s position" % self.nodes[2].get_type()
         path = "%s path" % self.nodes[2].get_type()
-        plt.plot(self.nodes[2].get_recorded_x_positions(), self.nodes[2].get_recorded_y_positions(), 'r' ) #color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
-        plt.plot(self.nodes[2].get_recorded_x_positions(), self.nodes[2].get_recorded_y_positions(), "ko", label=name+str(2))
+        plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(), 'r') #color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
+        plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(), "ko", label=name + str(2))
         name = "%s position" % self.nodes[0].get_type()
-        plt.plot(self.nodes[0].get_recorded_x_positions(), self.nodes[0].get_recorded_y_positions(), "mo", label=name)
+        plt.plot(self.nodes[0].get_corrected_x_positions(), self.nodes[0].get_corrected_y_positions(), "mo", label=name)
         name = "%s position" % self.nodes[3].get_type()
-        plt.plot(self.nodes[3].get_recorded_x_positions(), self.nodes[3].get_recorded_y_positions(), "co", label=name)
+        plt.plot(self.nodes[3].get_corrected_x_positions(), self.nodes[3].get_corrected_y_positions(), "co", label=name)
 
 
         plt.plot(self.testplotX, self.testplotY, "go", label=name1)
@@ -317,7 +320,7 @@ class MainController():
         robot.drive_forward(0.1)
         self.run_next_segment(robot, initial_pos, target)
 
-        return robot.get_recorded_positions
+        return robot.get_corrected_positions
 
     def run_next_segment(self, robot, previous_pos, target_pos):
         target = target_pos

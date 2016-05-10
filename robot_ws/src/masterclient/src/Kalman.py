@@ -4,6 +4,36 @@ import numpy as np
 class Kalman(object):
 
     def __init__(self):
+
+        """
+        #TODO: PLACE WHERE IT SHOULD BE
+        :param sigma_meas: standard deviation of measurement noise. sqrt(2) times the gauss radius
+        (where the function has decreased by a factor exp(-1)) of the control
+        :param sigma_x: standard deviation of translational noise relative to 1 (m/s for example). sqrt(2) times
+        the gauss radius (where the function has decreased by a factor exp(-1)) of the control
+        :param sigma_z: standard deviation of rotational noise relative to 1 (rad/s for example). sqrt(2) times
+        the gauss radius (where the function has decreased by a factor exp(-1)) of the control
+        :return:
+
+        self.kalman.set_sigma_x(sigma_x)
+        self.kalman.set_sigma_z(sigma_z)
+        self.kalman.set_sigma_meas(sigma_meas)
+        """
+
+        """
+        #TODO: ADD TO APPROPRIATE PLACE
+        :param x_min: minimum velocity [m/s]
+        :param x_max: maximum velocity [m/s]
+        :param z_min: minimum angular velocity [rad/s]
+        :param z_max: maximum angular velocity [rad/s]
+        :param k: gradient descent coefficient (0<k<1)
+        :param t_x: time to reach target pos if as if the robot was facing its target pos
+        :param t_z: time to rotate to face target pos
+        :param ok_dist: minimum distance to target pos that will make the robot move
+        :return:
+
+        """
+
         self.p = 0.1*np.eye(6)
         self.q = np.zeros((6, 6))
         self.std_meas = 0.05  # Standard deviation for UWB measurements, NOT percentage
