@@ -159,7 +159,7 @@ class Kalman(object):
                           [0, 1, 0, 0, dv_x_d, 0],
                           [dx_y, dx_d_y, dy_y, dy_d_y, dv_y, dv_d_y],
                           [0, 0, 0, 1, dv_y_d, 0],
-                          [0, 0, 0, 0, 1, 0],
+                          [0, 0, 0, 0, 1, time_step],
                           [0, 0, 0, 0, 0, 1]])
         else:
             x_k_k1 = np.array([[x_pos + x*np.cos(theta)*time_step],

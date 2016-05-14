@@ -49,11 +49,16 @@ class Node(object):
         self.corrected_positions = np.array([], dtype=np.float32)
         self.corrected_x_positions = np.array([], dtype=np.float32)
         self.corrected_y_positions = np.array([], dtype=np.float32)
+        #temp for align1.0
+        self.target_positions = np.array([], dtype=np.float32)
+        self.target_x_positions = np.array([], dtype=np.float32)
+        self.target_y_positions = np.array([], dtype=np.float32)
+
 
         self.x = 0  # velocity
         self.z = 0  # angular velocity
-        self.state = np.array([[0], [0], [0], [0], [0], [
-            0]])  # state = x_position, x_velocity, y_position, y_velocity, theta, theta_velocity(rotation velocity)
+        self.state = np.array([[0.0], [0.0], [0.0], [0.0], [0.0], [
+            0.0]])  # state = x_position, x_velocity, y_position, y_velocity, theta, theta_velocity(rotation velocity)
         # borde inte i state vara z?
 
         self.kalman = Kalman.Kalman()
@@ -94,8 +99,9 @@ class Node(object):
         :param pos: position
         :return:
         """
-        self.state[0, 0] = pos[0]
-        self.state[2, 0] = pos[1]
+        pos64 = np.array(pos, dtype=np.float64)
+        self.state[0, 0] = pos64[0] ##Doesn't work
+        self.state[2, 0] = pos64[1]
         # Log position of end node (Robot and base are logged when they change state).
         if self.type == "End":
             self.measured_positions = np.append(self.measured_positions, self.get_pos())
@@ -225,6 +231,44 @@ class Node(object):
         :return: corrected y positions
         """
         return self.corrected_y_positions
+#TEMP FOR ALIGN1.0 PLOTS
+    def get_target_positions(self):
+        """
+
+        :return: corrected positions
+        """
+        return self.target_positions
+
+    def get_target_x_positions(self):
+        """
+
+        :return: corrected x positions
+        """
+        return self.target_x_positions
+
+    def get_target_y_positions(self):
+        """
+
+        :return: corrected y positions
+        """
+        return self.target_y_positions
+
+    def set_target_positions(self, target):
+        """
+
+        :return: corrected positions
+        """
+
+        self.target_positions = np.append(self.target_positions, target)
+        self.target_x_positions = np.append(self.target_x_positions, target[0])
+        self.target_y_positions = np.append(self.target_y_positions, target[1])
+        return
+
+
+
+
+
+
 
     def get_left_neighbor(self):
         """

@@ -49,6 +49,7 @@ class MainController():
         self.testplotX = []
         self.testplotY = []
 
+        self.printtimer = 0
         # Instantiate Nodes
         self.nbr_of_nodes = nbr_of_nodes
         self.nodes = []
@@ -64,7 +65,7 @@ class MainController():
         initbase = np.array([0, 3], dtype=np.float32)
         # self.nodes[0].set_pos(initend)
         self.nodes[self.nbr_of_nodes - 1].set_pos(initend)  # Set position of end node
-        safedist = 1
+        safedist = 0.7
         relsafedist = 0.01
         self.ca = CollisionAvoidance.CollisionAvoidance(safedist, relsafedist)
 
@@ -153,6 +154,7 @@ class MainController():
             else:
                 # update pos
                 self.nodes[i].set_pos(second_pos)
+            self.printtimer = time.time()
 
     def align_robots(self, data):
         # Add update Base/End position?
@@ -185,6 +187,7 @@ class MainController():
             # Calulate correctposition for robot
             print i
             possible_next_position = self.correct_pos(self.nodes[i])
+            self.nodes[i].set_target_positions(possible_next_position)
             print possible_next_position
             # Check if position is within a radius of 0.1m of possible_next_position
             if (np.linalg.norm(self.nodes[i].measure_coordinates() - possible_next_position) > 0.1):
@@ -227,8 +230,7 @@ class MainController():
         for i in range(1, self.nbr_of_nodes - 1):  # Calculate new controls at time k
             x3 = self.nodes[i].get_controls().calc_controls(self.nodes[i].get_theta(), self.nodes[i].get_pos(),
                                                             self.nodes[self.nodes[i].get_left_neighbor()].get_pos(),
-                                                            self.nodes[self.nodes[
-                                                                i].get_right_neighbor()].get_pos())  ##self.nodes[i].get_axlen()
+                                                            self.nodes[self.nodes[i].get_right_neighbor()].get_pos())  ##self.nodes[i].get_axlen()
             self.testplotX += [x3[2]]
             self.testplotY += [x3[3]]
             # plt.plot(x3[2], x3[3], 'go')
@@ -246,40 +248,51 @@ class MainController():
                 self.nodes[i].set_z(z1)
                 self.nodes[j].set_x(x2)
                 self.nodes[j].set_z(z2)
-                print x1, z1, x2, z2
         for i in range(1, self.nbr_of_nodes - 1):
             self.nodes[i].update_twist()
 
     def terminator(self):
+        printtimerstop = time.time()
+        exectimeprint = printtimerstop - self.printtimer
         # For printing, colors hardcoded
 
         # for i in range(1, self.nbr_of_nodes-1):
-
+        print exectimeprint
         name = "%s position" % self.nodes[1].get_type()
         name1 = "%s position" % "Target"
         #    if i == 1:
         path = "%s path" % self.nodes[1].get_type()
-        plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), 'r',
+        """plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), 'r',
                  label=path)  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
         plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), "ko",
-                 label=name + str(1))
+                 label=name)"""
+        plt.plot(self.nodes[1].get_measured_x_positions(), self.nodes[1].get_measured_y_positions(), 'r',
+                 label=path)  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
+        plt.plot(self.nodes[1].get_measured_x_positions(), self.nodes[1].get_measured_y_positions(), "ko",
+                 label=name)
+        plt.plot(self.nodes[1].get_target_x_positions(), self.nodes[1].get_target_y_positions(), "o", mfc='none', mec='#00bb00',
+                 label=name1)
         name = "%s position" % self.nodes[2].get_type()
         path = "%s path" % self.nodes[2].get_type()
-        plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(),
+        """plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(),
                  'r')  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
-        plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(), "ko",
-                 label=name + str(2))
+        plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(), "ko")"""
+        plt.plot(self.nodes[2].get_measured_x_positions(), self.nodes[2].get_measured_y_positions(),
+                 'r')  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
+        plt.plot(self.nodes[2].get_measured_x_positions(), self.nodes[2].get_measured_y_positions(), "ko")
+        plt.plot(self.nodes[2].get_target_x_positions(), self.nodes[2].get_target_y_positions(), "o", mfc='none', mec='#00bb00')
+
         name = "%s position" % self.nodes[0].get_type()
         plt.plot(self.nodes[0].get_measured_x_positions(), self.nodes[0].get_measured_y_positions(), "mo", label=name)
         name = "%s position" % self.nodes[3].get_type()
         plt.plot(self.nodes[3].get_measured_x_positions(), self.nodes[3].get_measured_y_positions(), "co", label=name)
 
-        plt.plot(self.testplotX, self.testplotY, "go", label=name1)
-        plt.plot(-1, 1, 'x', label="Reference position 1", color='g')  # number 1
-        plt.plot(2, 0, 'x', label="Reference position 2", color='r')  # number 2
-        plt.plot(1, -2, 'x', label="Reference position 3", color='b')  # number 3
+        #plt.plot(self.testplotX, self.testplotY, "o", mfc='none', mec='#00bb00', label=name1)
+        plt.plot(-1, 2, 'x', label="Reference position", color='r', mew=4, ms=7)  # number 1
+        plt.plot(2, 0, 'x', color='r', mew=4, ms=7)  # number 2
+        plt.plot(-1, -2, 'x', color='r', mew=5, ms=7)  # number 3
         plt.axis([-4, 4, -4, 4], aspect=1)
-        plt.legend(loc='upper left')
+        plt.legend(loc='lower right')
         plt.show()
 
     ############################################################################################################
@@ -313,7 +326,7 @@ class MainController():
     def move_a_to_b(self, robot, target):
         print "Moving , activerobot: ", robot
         initial_pos = np.array(robot.measure_coordinates(), dtype=np.float32)
-        robot.drive_forward(0.1)
+        robot.drive_forward(0.2)
         self.run_next_segment(robot, initial_pos, target)
 
         return robot.get_corrected_positions
@@ -326,12 +339,12 @@ class MainController():
                     (np.absolute(target[1] - current[1])) <= 0.15))):
             length = math.sqrt(math.pow((target[0] - current[0]), 2) + math.pow((target[1] - current[1]), 2))
             deg = self.calculate_angle(previous_pos, current, target)
-            if length <= 0.1:
+            if length <= 0.2:
                 robot.rotate(deg)
                 robot.drive_forward(length)
             else:
                 robot.rotate(deg)
-                robot.drive_forward(0.1)
+                robot.drive_forward(0.2) #0.1
             self.run_next_segment(robot, current, target)
         else:
             return robot

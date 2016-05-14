@@ -196,6 +196,7 @@ class CollisionAvoidance(object):
         self.abs_dist_tol = abs_dist_tol
         self.rel_dist_tol = rel_dist_tol
         self.k = 0.5
+        self.calls = 0
 
     def gradient_descent(self, pos_1, theta_1, x_1, z_1, pos_2, theta_2, x_2, z_2, time_exec, ret_on_col):
         t_2 = time_exec/2.0
@@ -211,27 +212,28 @@ class CollisionAvoidance(object):
                     dt_2, dt_1 = __tar_grad_rot_rot__(pos_1, theta_1, x_1, z_1, pos_2, theta_2, x_2, z_2, t_2, t_1)
                     t_2 -= self.k*dt_2
                     t_1 -= self.k*dt_1
-                    if 0 > t_2 or t_2 > time_exec or 0 > t_1 or t_1 > time_exec:
-                        break
                     residual = __tar_fun_rot_rot__(pos_1, theta_1, x_1, z_1, pos_2, theta_2, x_2, z_2, t_2, t_1)
                     if np.abs(residual) < self.abs_dist_tol**2 and ret_on_col:
                         collide = True
+                        break
+                    if 0 > t_2 or t_2 > time_exec or 0 > t_1 or t_1 > time_exec:
                         break
                     if time.time() - bfr > 0.1:
                         print 'calculation timed out', t_1, t_2
                         break
             else:  # rob1 rot rob2 lin
+                print "rotlin",self.calls
                 bfr = time.time()
                 while np.abs(last_residual-residual) > self.rel_dist_tol**2:
                     last_residual = residual
                     dt_2, dt_1 = __tar_grad_rot_lin__(pos_1, theta_1, x_1, z_1, pos_2, theta_2, x_2, t_2, t_1)
                     t_2 -= self.k*dt_2
                     t_1 -= self.k*dt_1
-                    if 0 > t_2 or t_2 > time_exec or 0 > t_1 or t_1 > time_exec:
-                        break
                     residual = __tar_fun_rot_lin__(pos_1, theta_1, x_1, z_1, pos_2, theta_2, x_2, t_2, t_1)
                     if np.abs(residual) < self.abs_dist_tol**2 and ret_on_col:
                         collide = True
+                        break
+                    if 0 > t_2 or t_2 > time_exec or 0 > t_1 or t_1 > time_exec:
                         break
                     if time.time() - bfr > 0.1:
                         print 'calculation timed out', t_1, t_2
@@ -239,32 +241,34 @@ class CollisionAvoidance(object):
         else:
             if np.abs(z_2) > 1e-40:  # rob1 lin rob2 rot
                 bfr = time.time()
+                print "linrot",self.calls
                 while np.abs(last_residual-residual) > self.rel_dist_tol**2:
                     last_residual = residual
                     dt_2, dt_1 = __tar_grad_lin_rot__(pos_1, theta_1, x_1, pos_2, theta_2, x_2, z_2, t_2, t_1)
                     t_2 -= self.k*dt_2
                     t_1 -= self.k*dt_1
-                    if 0 > t_2 or t_2 > time_exec or 0 > t_1 or t_1 > time_exec:
-                        break
                     residual = __tar_fun_lin_rot__(pos_1, theta_1, x_1, pos_2, theta_2, x_2, z_2, t_2, t_1)
                     if np.abs(residual) < self.abs_dist_tol**2 and ret_on_col:
                         collide = True
+                        break
+                    if 0 > t_2 or t_2 > time_exec or 0 > t_1 or t_1 > time_exec:
                         break
                     if time.time() - bfr > 0.1:
                         print 'calculation timed out', t_1, t_2
                         break
             else:  # rob1 lin rob2 lin
                 bfr = time.time()
+                print "linlin",self.calls
                 while np.abs(last_residual-residual) > self.rel_dist_tol**2:
                     last_residual = residual
                     dt_2, dt_1 = __tar_grad_lin_lin__(pos_1, theta_1, x_1, pos_2, theta_2, x_2, t_2, t_1)
                     t_2 -= self.k*dt_2
                     t_1 -= self.k*dt_1
-                    if 0 > t_2 or t_2 > time_exec or 0 > t_1 or t_1 > time_exec:
-                        break
                     residual = __tar_fun_lin_lin__(pos_1, theta_1, x_1, pos_2, theta_2, x_2, t_2, t_1)
                     if np.abs(residual) < self.abs_dist_tol**2 and ret_on_col:
                         collide = True
+                        break
+                    if 0 > t_2 or t_2 > time_exec or 0 > t_1 or t_1 > time_exec:
                         break
                     if time.time() - bfr > 0.1:
                         print 'calculation timed out', t_1, t_2
@@ -272,6 +276,8 @@ class CollisionAvoidance(object):
         return collide, t_1, t_2
 
     def calc_new_controls(self, pos_1, theta_1, x_1, z_1, pos_2, theta_2, x_2, z_2, time_exec):
+        self.calls += 1
+        print self.calls
         new_x_1 = x_1
         new_z_1 = z_1
         new_x_2 = x_2

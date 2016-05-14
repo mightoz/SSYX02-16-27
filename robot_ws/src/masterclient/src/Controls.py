@@ -112,10 +112,10 @@ class Controls(object):
         self.x_max = 0.2  # Maximum speed forwards
         self.z_min = 0  # Minimum rotation speed, absolute value
         self.z_max = 1  # Maximum rotation speed, absolute value
-        self.k = 0.25  # Gradient step
+        self.k = 0.3  # Gradient step
         self.t_x = 1  # Speed factor forward, lower factor = higher speed, !=0
         self.t_z = 1  # Speed factor rotation, -||-  !=0
-        self.ok_dist = 0.05  # Minimum distance to next targetpos, k affects this
+        self.ok_dist = 0.04  # Minimum distance to next targetpos, k affects this
 
     def find_next_pos(self, curr_pos, neighbour_1_pos, neighbour_2_pos):
         """
