@@ -27,11 +27,12 @@ def handle_rotateRobot(req):
     rospy.sleep(0.01);
 
 #Fixed rotating speed, sleeptime changes depending on deg
-    twist.angular.z = 0.5*np.sign(req.deg)
+    z = 0.5
+    twist.angular.z = z*np.sign(req.deg)
     print (np.abs(req.deg/0.5))
     rospy.loginfo("Rotatating robot.")
     pub.publish(twist)
-    rospy.sleep(np.abs(req.deg/0.5));
+    rospy.sleep(np.abs(req.deg/z));#np.abs(req.deg/0.5));
 
     rospy.loginfo("Stopping.")
     twist = Twist()

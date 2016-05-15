@@ -28,10 +28,10 @@ def handle_moveRobot(req):
     rospy.sleep(0.01);
 
 
-    twist.linear.x = (req.length/2)
+    twist.linear.x = (req.length)
     rospy.loginfo("Moving robot.")
     pub.publish(twist)
-    rospy.sleep(2);
+    rospy.sleep(1);
 
     rospy.loginfo("Stopping.")
     twist = Twist()
