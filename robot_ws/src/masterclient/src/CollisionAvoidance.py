@@ -292,6 +292,7 @@ class CollisionAvoidance(object):
             if collide2:
                 print 'collide2: stopping robot1'
                 new_x_1 = 0
+
                 collide3, t1, t2 = self.gradient_descent(pos_1, theta_1, new_x_1, new_z_1, pos_2, theta_2, new_x_2,
                                                          new_z_2, time_exec, True)
         return new_x_1, new_z_1, new_x_2, new_z_2

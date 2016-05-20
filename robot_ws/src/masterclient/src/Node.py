@@ -268,8 +268,6 @@ class Node(object):
 
 
 
-
-
     def get_left_neighbor(self):
         """
 

@@ -117,6 +117,23 @@ class Controls(object):
         self.t_z = 1  # Speed factor rotation, -||-  !=0
         self.ok_dist = 0.04  # Minimum distance to next targetpos, k affects this
 
+        self.dist_log = np.array([], dtype=np.float32)
+
+    def get_dist_log(self):
+        """
+
+        :return: corrected positions
+        """
+        return self.dist_log
+
+    def set_dist_log(self, dist):
+        """
+
+        :return: corrected positions
+        """
+        self.dist_log = np.append(self.dist_log, dist)
+        return
+
     def find_next_pos(self, curr_pos, neighbour_1_pos, neighbour_2_pos):
         """
 
@@ -127,8 +144,13 @@ class Controls(object):
         """
         dist1 = neighbour_1_pos - curr_pos
         dist2 = neighbour_2_pos - curr_pos
+        disttotarg  = self.k * np.linalg.norm(dist1 +dist2)
+        self.set_dist_log(disttotarg)
+
 
         return curr_pos + self.k * (dist1 + dist2)
+
+
 
     def get_trans_magn_1(self, curr_pos, tar_pos, phi):
         """

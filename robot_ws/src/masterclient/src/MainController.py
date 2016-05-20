@@ -12,6 +12,7 @@ from std_msgs.msg import String
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 import Node
 import time
 import CollisionAvoidance
@@ -48,7 +49,13 @@ class MainController():
         self.reachedalign2 = 0
         self.testplotX = []
         self.testplotY = []
-
+        self.contplotX_1 = []
+        self.contplotZ_1 = []
+        self.contplotX_2 = []
+        self.contplotZ_2 = []
+        self.exectimestuff = []
+        self.dist_log_1 = np.array([], dtype=np.float32)
+        self.dist_log_2 = np.array([], dtype=np.float32)
         self.printtimer = 0
         # Instantiate Nodes
         self.nbr_of_nodes = nbr_of_nodes
@@ -147,6 +154,7 @@ class MainController():
                     angle = phi
                 else:
                     angle = 2 * np.pi - phi
+                print angle
                 # update state
                 self.nodes[i].set_state(np.array([[second_pos[0]], [self.nodes[i].get_x_vel()],
                                                   [second_pos[1]], [self.nodes[i].get_y_vel()],
@@ -190,6 +198,12 @@ class MainController():
             self.nodes[i].set_target_positions(possible_next_position)
             print possible_next_position
             # Check if position is within a radius of 0.1m of possible_next_position
+
+            if i == 1:
+                self.dist_log_1 = np.append(self.dist_log_1, np.linalg.norm(self.nodes[i].measure_coordinates() - possible_next_position))
+                print "ja "
+            if i == 2:
+                self.dist_log_2 = np.append(self.dist_log_2, np.linalg.norm(self.nodes[i].measure_coordinates() - possible_next_position))
             if (np.linalg.norm(self.nodes[i].measure_coordinates() - possible_next_position) > 0.1):
                 print "Tries to move"
                 self.move_a_to_b(self.nodes[i], possible_next_position)  # Otherwise move
@@ -250,6 +264,17 @@ class MainController():
                 self.nodes[j].set_z(z2)
         for i in range(1, self.nbr_of_nodes - 1):
             self.nodes[i].update_twist()
+            if (i == 1):
+                self.contplotX_1 += [self.nodes[i].get_x()]
+                self.contplotZ_1 += [self.nodes[i].get_z()]
+            else:
+                self.contplotX_2 += [self.nodes[i].get_x()]
+                self.contplotZ_2 += [self.nodes[i].get_z()]
+        if (self.calls == 0):
+            self.exectimestuff +=[exectime]
+        else:
+            self.exectimestuff += [self.exectimestuff[len(self.exectimestuff)-1]+exectime]
+
 
     def terminator(self):
         printtimerstop = time.time()
@@ -262,37 +287,169 @@ class MainController():
         name1 = "%s position" % "Target"
         #    if i == 1:
         path = "%s path" % self.nodes[1].get_type()
-        """plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), 'r',
+        plt.figure(1)
+        plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), 'r',
                  label=path)  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
         plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), "ko",
-                 label=name)"""
+                 label=name)
+
+        """
+
         plt.plot(self.nodes[1].get_measured_x_positions(), self.nodes[1].get_measured_y_positions(), 'r',
                  label=path)  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
         plt.plot(self.nodes[1].get_measured_x_positions(), self.nodes[1].get_measured_y_positions(), "ko",
                  label=name)
-        plt.plot(self.nodes[1].get_target_x_positions(), self.nodes[1].get_target_y_positions(), "o", mfc='none', mec='#00bb00',
+        plt.plot(self.nodes[1].get_target_x_positions(), self.nodes[1].get_target_y_positions(), "o", mfc='none',
+                 mec='#00bb00',
                  label=name1)
+        if (len(self.nodes[1].get_measured_x_positions())) > 0:
+            plt.plot(self.nodes[1].get_measured_x_positions()[len(self.nodes[1].get_measured_x_positions()) - 1],
+                     self.nodes[1].get_measured_y_positions()[len(self.nodes[1].get_measured_x_positions()) - 1], "yo", label='Final position')"""
+
         name = "%s position" % self.nodes[2].get_type()
         path = "%s path" % self.nodes[2].get_type()
-        """plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(),
+        plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(),
                  'r')  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
-        plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(), "ko")"""
+        plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(), "ko")
+        plt.plot(self.testplotX, self.testplotY, "o", mfc='none', mec='#00bb00', label=name1)
+        if (len(self.nodes[1].get_corrected_x_positions())) > 0:
+            plt.plot(self.nodes[1].get_corrected_x_positions()[len(self.nodes[1].get_corrected_x_positions()) - 1],
+                     self.nodes[1].get_corrected_y_positions()[len(self.nodes[1].get_corrected_x_positions()) - 1],
+                     "yo", label = 'Final position')
+        if (len(self.nodes[2].get_corrected_x_positions())) > 0:
+            plt.plot(self.nodes[2].get_corrected_x_positions()[len(self.nodes[2].get_corrected_x_positions()) - 1],
+                     self.nodes[2].get_corrected_y_positions()[len(self.nodes[2].get_corrected_x_positions()) - 1],
+                     "yo")
+        """
         plt.plot(self.nodes[2].get_measured_x_positions(), self.nodes[2].get_measured_y_positions(),
                  'r')  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
         plt.plot(self.nodes[2].get_measured_x_positions(), self.nodes[2].get_measured_y_positions(), "ko")
-        plt.plot(self.nodes[2].get_target_x_positions(), self.nodes[2].get_target_y_positions(), "o", mfc='none', mec='#00bb00')
+        if (len(self.nodes[1].get_measured_x_positions())) > 0:
+            plt.plot(self.nodes[2].get_measured_x_positions()[len(self.nodes[2].get_measured_x_positions()) - 1],
+                     self.nodes[2].get_measured_y_positions()[len(self.nodes[2].get_measured_x_positions()) - 1], "yo")
+        plt.plot(self.nodes[2].get_target_x_positions(), self.nodes[2].get_target_y_positions(), "o", mfc='none',
+                 mec='#00bb00')"""
 
         name = "%s position" % self.nodes[0].get_type()
         plt.plot(self.nodes[0].get_measured_x_positions(), self.nodes[0].get_measured_y_positions(), "mo", label=name)
         name = "%s position" % self.nodes[3].get_type()
         plt.plot(self.nodes[3].get_measured_x_positions(), self.nodes[3].get_measured_y_positions(), "co", label=name)
 
+        #Comment out this if no line plot
+        #xs = [self.nodes[0].get_x_pos(), self.nodes[3].get_x_pos()]
+        #ys = [self.nodes[0].get_y_pos(), self.nodes[3].get_y_pos()]
+        #plt.plot(xs, ys, 'b')
+
+
+
         #plt.plot(self.testplotX, self.testplotY, "o", mfc='none', mec='#00bb00', label=name1)
-        plt.plot(-1, 2, 'x', label="Reference position", color='r', mew=4, ms=7)  # number 1
+        plt.plot(-1, 2, 'x', label="Anchor position", color='r', mew=4, ms=7)  # number 1
         plt.plot(2, 0, 'x', color='r', mew=4, ms=7)  # number 2
         plt.plot(-1, -2, 'x', color='r', mew=5, ms=7)  # number 3
         plt.axis([-4, 4, -4, 4], aspect=1)
-        plt.legend(loc='lower right')
+        plt.legend(loc='lower right', numpoints=1)
+        plt.figure(2)
+        plt.plot(self.exectimestuff, self.contplotX_1, 'r', label='Velocity')
+        plt.plot(self.exectimestuff, self.contplotX_1, 'rx')
+        plt.plot(self.exectimestuff, self.contplotZ_1, 'b', label='Angular velocity')
+        plt.plot(self.exectimestuff, self.contplotZ_1, 'bx')
+        plt.plot(self.exectimestuff, self.contplotX_2, 'r')
+        plt.plot(self.exectimestuff, self.contplotX_2, 'rx')
+        plt.plot(self.exectimestuff, self.contplotZ_2, 'b')
+        plt.plot(self.exectimestuff, self.contplotZ_2, 'bx')
+        plt.legend()
+        plt.figure(3)
+        vanilla = self.nodes[1].get_controls().get_dist_log()
+        tbc = self.nodes[2].get_controls().get_dist_log()
+        print len(vanilla)
+        print len(tbc)
+        print len(self.exectimestuff)
+        print len(vanilla[:len(self.exectimestuff)])
+        if len(vanilla) == len(self.exectimestuff):
+            plt.plot(self.exectimestuff, vanilla, 'b', label='Cost function for robot')
+        else:
+            plt.plot(self.exectimestuff, vanilla[:len(self.exectimestuff)], 'b', label='Cost function for robot')
+        if len(tbc) == len(self.exectimestuff):
+            plt.plot(self.exectimestuff, tbc, 'b')
+        else:
+            plt.plot(self.exectimestuff, tbc[:len(self.exectimestuff)], 'b')
+
+        if len(vanilla) == len(tbc):
+            wotlk = vanilla + tbc
+        elif len(vanilla) > len(tbc):
+            wotlk = vanilla[:len(tbc)-1] + tbc
+        else:
+            wotlk = vanilla + tbc[:len(vanilla) - 1]
+
+        if len(wotlk) == len(self.exectimestuff):
+            plt.plot(self.exectimestuff, wotlk, 'r', label='Cost function')
+        else:
+            plt.plot(self.exectimestuff, wotlk[:len(self.exectimestuff)], 'r', label='Cost function')
+
+        plt.legend(loc='lower right', numpoints=1)
+        plt.figure(4)
+        plt.plot(self.dist_log_1, 'ro', label='Cost function for robot')
+        plt.plot(self.dist_log_2, 'ro')
+        plt.plot(self.dist_log_1, 'r')
+        plt.plot(self.dist_log_2, 'r')
+        plt.legend(loc='lower right', numpoints=1)
+        ####################################
+        plt.figure(5)
+        plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), 'r',label=path)  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
+        plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), "ko",
+                label=name)
+        """
+        plt.plot(self.nodes[1].get_measured_x_positions(), self.nodes[1].get_measured_y_positions(), 'r',
+                 label=path)  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
+        plt.plot(self.nodes[1].get_measured_x_positions(), self.nodes[1].get_measured_y_positions(), "ko",
+                 label=name)
+        plt.plot(self.nodes[1].get_target_x_positions(), self.nodes[1].get_target_y_positions(), "o", mfc='none',
+                 mec='#00bb00',
+                 label=name1)
+        if (len(self.nodes[1].get_measured_x_positions())) > 0:
+            plt.plot(self.nodes[1].get_measured_x_positions()[len(self.nodes[1].get_measured_x_positions()) - 1],
+                     self.nodes[1].get_measured_y_positions()[len(self.nodes[1].get_measured_x_positions()) - 1], "yo", label = 'Final position')"""
+
+        name = "%s position" % self.nodes[2].get_type()
+        path = "%s path" % self.nodes[2].get_type()
+        plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(),
+                 'r')  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
+        plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(), "ko")
+        plt.plot(self.testplotX, self.testplotY, "o", mfc='none', mec='#00bb00', label=name1)
+        if (len(self.nodes[1].get_corrected_x_positions())) > 0:
+            plt.plot(self.nodes[1].get_corrected_x_positions()[len(self.nodes[1].get_corrected_x_positions()) - 1],
+                     self.nodes[1].get_corrected_y_positions()[len(self.nodes[1].get_corrected_x_positions()) - 1],
+                     "yo", label='Final position')
+        if (len(self.nodes[2].get_corrected_x_positions())) > 0:
+            plt.plot(self.nodes[2].get_corrected_x_positions()[len(self.nodes[2].get_corrected_x_positions()) - 1], self.nodes[2].get_corrected_y_positions()[len(self.nodes[2].get_corrected_x_positions()) - 1], "yo")
+        """
+        plt.plot(self.nodes[2].get_measured_x_positions(), self.nodes[2].get_measured_y_positions(),
+                 'r')  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
+        plt.plot(self.nodes[2].get_measured_x_positions(), self.nodes[2].get_measured_y_positions(), "ko")
+        if (len(self.nodes[1].get_measured_x_positions())) > 0:
+            plt.plot(self.nodes[2].get_measured_x_positions()[len(self.nodes[2].get_measured_x_positions()) - 1],
+                     self.nodes[2].get_measured_y_positions()[len(self.nodes[2].get_measured_x_positions()) - 1], "yo")
+        plt.plot(self.nodes[2].get_target_x_positions(), self.nodes[2].get_target_y_positions(), "o", mfc='none',
+                 mec='#00bb00')"""
+
+        name = "%s position" % self.nodes[0].get_type()
+        plt.plot(self.nodes[0].get_measured_x_positions(), self.nodes[0].get_measured_y_positions(), "mo", label=name)
+        name = "%s position" % self.nodes[3].get_type()
+        plt.plot(self.nodes[3].get_measured_x_positions(), self.nodes[3].get_measured_y_positions(), "co", label=name)
+
+        #Comment out this if no line plot
+        xs = [self.nodes[0].get_x_pos(), self.nodes[3].get_x_pos()]
+        ys = [self.nodes[0].get_y_pos(), self.nodes[3].get_y_pos()]
+        plt.plot(xs, ys, 'b', label='Target line')
+
+
+
+        #plt.plot(self.testplotX, self.testplotY, "o", mfc='none', mec='#00bb00', label=name1)
+        plt.plot(-1, 2, 'x', label="Anchor position", color='r', mew=4, ms=7)  # number 1
+        plt.plot(2, 0, 'x', color='r', mew=4, ms=7)  # number 2
+        plt.plot(-1, -2, 'x', color='r', mew=5, ms=7)  # number 3
+        plt.axis([-4, 4, -4, 4], aspect=1)
+        plt.legend(loc='lower right', numpoints=1)
         plt.show()
 
     ############################################################################################################
@@ -335,8 +492,8 @@ class MainController():
         target = target_pos
         current = np.array(robot.measure_coordinates(), dtype=np.float32)
 
-        if (not (((np.absolute(target[0] - current[0])) <= 0.15) & (
-                    (np.absolute(target[1] - current[1])) <= 0.15))):
+        if (not (((np.absolute(target[0] - current[0])) <= 0.1) & (
+                    (np.absolute(target[1] - current[1])) <= 0.1))):
             length = math.sqrt(math.pow((target[0] - current[0]), 2) + math.pow((target[1] - current[1]), 2))
             deg = self.calculate_angle(previous_pos, current, target)
             if length <= 0.2:
