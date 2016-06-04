@@ -24,7 +24,6 @@ def handle_update_twist(data):
 
     pub = rospy.Publisher("RosAria/cmd_vel", Twist, queue_size=10)
     pub.publish(twist)
-    print rospy.get_name(), "Twist Updated"
     ack = 1
     return UpdateTwistResponse(ack)
 
