@@ -115,12 +115,11 @@ class Controls(object):
         self.k = 0.3  # Gradient step
         self.t_x = 1  # Speed factor forward, lower factor = higher speed, !=0
         self.t_z = 1  # Speed factor rotation, -||-  !=0
-        self.ok_dist = 0.04  # Minimum distance to next targetpos, k affects this
+        self.ok_dist = 0.04  # Min distance to next targetpos, k affects this
 
-        #History for target positions, for plotting
+        # History for target positions, for plotting
         self.target_x_positions = np.array([], dtype=np.float32)
         self.target_y_positions = np.array([], dtype=np.float32)
-
 
     def find_next_pos(self, curr_pos, neighbour_1_pos, neighbour_2_pos):
         """
@@ -134,8 +133,6 @@ class Controls(object):
         dist2 = neighbour_2_pos - curr_pos
         return curr_pos + self.k * (dist1 + dist2)
 
-
-
     def get_trans_magn_1(self, curr_pos, tar_pos, phi):
         """
 
@@ -144,16 +141,16 @@ class Controls(object):
         :param phi: angle to rotate to face target pos
         :return: The velocity for the next iteration
         """
-        dist = np.linalg.norm(curr_pos - tar_pos)
-        if dist < self.ok_dist:
-            return 0
-        else:
-            if dist / self.t_x * (np.pi - phi) / np.pi > self.x_max:
-                return self.x_max
-            elif dist / self.t_x * (np.pi - phi) / np.pi < self.x_min:
-                return self.x_min
+        dist = np.linalg.norm(curr_pos - tar_pos)  # Distance to target
+        new_x = 0  # New velocity
+        if dist > self.ok_dist:
+            if dist / self.t_x > self.x_max:
+                new_x = self.x_max * (np.pi - phi) / np.pi
+            elif dist / self.t_x < self.x_min:
+                new_x = self.x_min * (np.pi - phi) / np.pi
             else:
-                return dist / self.t_x * (np.pi - phi) / np.pi
+                new_x = dist / self.t_x * (np.pi - phi) / np.pi
+        return new_x
 
     def get_rot_magn_1(self, theta, curr_pos, tar_pos):
         """
@@ -164,36 +161,37 @@ class Controls(object):
         :return: The rotation for the next iteration
         """
         dist = np.linalg.norm(curr_pos - tar_pos)
-        if dist < self.ok_dist:
-            return 0
-        y = tar_pos - curr_pos
-        a = np.array([[np.cos(theta), np.sin(theta)],
-                      [np.sin(theta), -np.cos(theta)]])
-        x = np.linalg.solve(a, y)
-
-        d = np.array([x[0] * np.cos(theta), x[0] * np.sin(theta)])
-        if np.linalg.norm(y) > 1e-40:
-            if x[0] >= 0:
-                phi = np.arccos(np.dot(y, d) / (np.linalg.norm(y) * np.linalg.norm(d)))
+        new_z = 0
+        if dist > self.ok_dist:
+            y = tar_pos - curr_pos
+            a = np.array([[np.cos(theta), np.sin(theta)],
+                          [np.sin(theta), -np.cos(theta)]])
+            x = np.linalg.solve(a, y)
+            d = np.array([x[0] * np.cos(theta), x[0] * np.sin(theta)])
+            if np.linalg.norm(y) > 1e-40:
+                if x[0] >= 0:
+                    phi = np.arccos(np.dot(y, d) / (np.linalg.norm(y) * np.linalg.norm(d)))
+                else:
+                    phi = np.pi - np.arccos(np.dot(y, d) / (np.linalg.norm(y) * np.linalg.norm(d)))
             else:
-                phi = np.pi - np.arccos(np.dot(y, d) / (np.linalg.norm(y) * np.linalg.norm(d)))
-        else:
-            phi = 0
-
-        if phi / self.t_z > self.z_max:
-            return self.z_max
-        elif phi / self.t_z < self.z_min:
-            return self.z_min
-        else:
-            return phi / self.t_z
+                phi = 0
+            if phi / self.t_z > self.z_max:
+                new_z = self.z_max
+            elif phi / self.t_z < self.z_min:
+                new_z = self.z_min
+            else:
+                new_z = phi / self.t_z
+        return new_z
 
     def calc_controls(self, theta, curr_pos, neighbour_1_pos, neighbour_2_pos):
         """
 
-        :param theta: orientation relative to the x-axis in the coordinate grid. positive ccw
+        :param theta: orientation relative to the x-axis in the
+        coordinate grid. positive ccw
         :param curr_pos: current position
         :param neighbour_1_pos: position of neighbour 1
-        :param neighbour_2_pos: position of neighbour 2. if only 1 neighbour exist, set it to 0
+        :param neighbour_2_pos: position of neighbour 2. if only 1
+        neighbour exist, set it to 0
         :return: the next controls; X, Z
         """
         tar_pos = self.find_next_pos(curr_pos, neighbour_1_pos, neighbour_2_pos)
