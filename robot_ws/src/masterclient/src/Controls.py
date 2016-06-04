@@ -117,22 +117,10 @@ class Controls(object):
         self.t_z = 1  # Speed factor rotation, -||-  !=0
         self.ok_dist = 0.04  # Minimum distance to next targetpos, k affects this
 
-        self.dist_log = np.array([], dtype=np.float32)
+        #History for target positions, for plotting
+        self.target_x_positions = np.array([], dtype=np.float32)
+        self.target_y_positions = np.array([], dtype=np.float32)
 
-    def get_dist_log(self):
-        """
-
-        :return: corrected positions
-        """
-        return self.dist_log
-
-    def set_dist_log(self, dist):
-        """
-
-        :return: corrected positions
-        """
-        self.dist_log = np.append(self.dist_log, dist)
-        return
 
     def find_next_pos(self, curr_pos, neighbour_1_pos, neighbour_2_pos):
         """
@@ -144,10 +132,6 @@ class Controls(object):
         """
         dist1 = neighbour_1_pos - curr_pos
         dist2 = neighbour_2_pos - curr_pos
-        disttotarg  = self.k * np.linalg.norm(dist1 +dist2)
-        self.set_dist_log(disttotarg)
-
-
         return curr_pos + self.k * (dist1 + dist2)
 
 
@@ -215,7 +199,10 @@ class Controls(object):
         tar_pos = self.find_next_pos(curr_pos, neighbour_1_pos, neighbour_2_pos)
         next_z = get_rot_dir(theta, curr_pos, tar_pos) * self.get_rot_magn_1(theta, curr_pos, tar_pos)
         next_x = self.get_trans_magn_1(curr_pos, tar_pos, np.abs(next_z * self.t_z))
-        return [next_x, next_z, tar_pos[0], tar_pos[1]]
+        #Update history of target positions for plotting
+        self.target_x_positions = np.append(self.target_x_positions, tar_pos[0])
+        self.target_y_positions = np.append(self.target_y_positions, tar_pos[1])
+        return [next_x, next_z]
 
     def set_x_max(self, val):
         """
@@ -362,3 +349,18 @@ class Controls(object):
         :return: minimum distance to target pos that will make the robot move
         """
         return self.ok_dist
+
+
+    def get_target_x_positions(self):
+        """
+
+        :return: minimum distance to target pos that will make the robot move
+        """
+        return self.target_x_positions
+
+    def get_target_y_positions(self):
+        """
+
+        :return: minimum distance to target pos that will make the robot move
+        """
+        return self.target_y_positions

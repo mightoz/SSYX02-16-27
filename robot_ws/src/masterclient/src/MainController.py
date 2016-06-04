@@ -47,16 +47,8 @@ class MainController():
 
         self.finishedalign2 = 0
         self.reachedalign2 = 0
-        self.testplotX = []
-        self.testplotY = []
-        self.contplotX_1 = []
-        self.contplotZ_1 = []
-        self.contplotX_2 = []
-        self.contplotZ_2 = []
         self.exectimestuff = []
-        self.dist_log_1 = np.array([], dtype=np.float32)
-        self.dist_log_2 = np.array([], dtype=np.float32)
-        self.printtimer = 0
+        self.coordinate = -1
         # Instantiate Nodes
         self.nbr_of_nodes = nbr_of_nodes
         self.nodes = []
@@ -67,12 +59,12 @@ class MainController():
                 self.nodes += [Node.Node(i, "End")]
             else:
                 self.nodes += [Node.Node(i, "Robot")]
-                # Set inital Base/End position to defualt if measurement should fail
+        # Set inital Base/End position to defualt if measurement should fail
         initend = np.array([0, -2], dtype=np.float32)
         initbase = np.array([0, 3], dtype=np.float32)
-        # self.nodes[0].set_pos(initend)
-        self.nodes[self.nbr_of_nodes - 1].set_pos(initend)  # Set position of end node
-        safedist = 0.7
+        self.nodes[0].set_pos(initbase)
+        self.nodes[self.nbr_of_nodes - 1].set_pos(initend)
+        safedist = 1
         relsafedist = 0.01
         self.ca = CollisionAvoidance.CollisionAvoidance(safedist, relsafedist)
 
@@ -162,11 +154,11 @@ class MainController():
             else:
                 # update pos
                 self.nodes[i].set_pos(second_pos)
-            self.printtimer = time.time()
 
     def align_robots(self, data):
-        # Add update Base/End position?
-        print "This is number of calls", self.calls
+        #Save align number
+        self.coordinate = int(data.data.data[len(data.data.data)-1])
+        print "This is number of iterations", self.calls
         if self.calls == 0:
             self.calibrate()
         if (data.data.data == "align1"):
@@ -176,17 +168,14 @@ class MainController():
             self.align_robots_2()
             self.calls = self.calls + 1
 
+        #Update base position for each iteration
         base_pos = np.array(self.nodes[0].measure_coordinates(), dtype=np.float32)
         if (np.size(base_pos) == 2):
             self.nodes[0].set_pos(base_pos)  # Update position of base
-            # print "This is updated base" , base_pos
-        # FOR END POS
-        # end_pos = np.array(self.nodes[self.nbr_of_nodes-1].measure_coordinates(), dtype=np.float32)
-        # print "This is updated base" , end_pos
-        # if (np.size(end_pos) == 2):
-        #    self.nodes[0].set_pos(end_pos) #Update position of base
-        if self.calls > 100:
-            print "Please consider recallibration of Robots"
+        """IF END POS IS A UWB
+        end_pos = np.array(self.nodes[self.nbr_of_nodes-1].measure_coordinates(), dtype=np.float32)
+        if (np.size(end_pos) == 2):
+            self.nodes[0].set_pos(end_pos) #Update position of end"""
         return IteratorResponse(1)
 
     def align_robots_1(self):
@@ -198,12 +187,6 @@ class MainController():
             self.nodes[i].set_target_positions(possible_next_position)
             print possible_next_position
             # Check if position is within a radius of 0.1m of possible_next_position
-
-            if i == 1:
-                self.dist_log_1 = np.append(self.dist_log_1, np.linalg.norm(self.nodes[i].measure_coordinates() - possible_next_position))
-                print "ja "
-            if i == 2:
-                self.dist_log_2 = np.append(self.dist_log_2, np.linalg.norm(self.nodes[i].measure_coordinates() - possible_next_position))
             if (np.linalg.norm(self.nodes[i].measure_coordinates() - possible_next_position) > 0.1):
                 print "Tries to move"
                 self.move_a_to_b(self.nodes[i], possible_next_position)  # Otherwise move
@@ -245,9 +228,8 @@ class MainController():
             x3 = self.nodes[i].get_controls().calc_controls(self.nodes[i].get_theta(), self.nodes[i].get_pos(),
                                                             self.nodes[self.nodes[i].get_left_neighbor()].get_pos(),
                                                             self.nodes[self.nodes[i].get_right_neighbor()].get_pos())  ##self.nodes[i].get_axlen()
-            self.testplotX += [x3[2]]
-            self.testplotY += [x3[3]]
-            # plt.plot(x3[2], x3[3], 'go')
+
+            #Update controls
             self.nodes[i].set_x(x3[0])
             self.nodes[i].set_z(x3[1])
 
@@ -257,202 +239,153 @@ class MainController():
                                                            self.nodes[i].get_x(), self.nodes[i].get_z(),
                                                            self.nodes[j].get_pos(), self.nodes[j].get_theta(),
                                                            self.nodes[j].get_x(), self.nodes[j].get_z(),
-                                                           exectime)  # self.dt)
+                                                           exectime)
+                #Update controls after collision avoidance
                 self.nodes[i].set_x(x1)
                 self.nodes[i].set_z(z1)
                 self.nodes[j].set_x(x2)
                 self.nodes[j].set_z(z2)
+        #Send controls to robots
         for i in range(1, self.nbr_of_nodes - 1):
             self.nodes[i].update_twist()
-            if (i == 1):
-                self.contplotX_1 += [self.nodes[i].get_x()]
-                self.contplotZ_1 += [self.nodes[i].get_z()]
-            else:
-                self.contplotX_2 += [self.nodes[i].get_x()]
-                self.contplotZ_2 += [self.nodes[i].get_z()]
+            #For plotting controls, save in array of controls
+            self.nodes[i].append_control_x_history(self.nodes[i].get_x())
+            self.nodes[i].append_control_z_history(self.nodes[i].get_z())
+
+        #Updates array containing time instances for control updates (for plotting)
         if (self.calls == 0):
             self.exectimestuff +=[exectime]
         else:
             self.exectimestuff += [self.exectimestuff[len(self.exectimestuff)-1]+exectime]
 
-
-    def terminator(self):
-        printtimerstop = time.time()
-        exectimeprint = printtimerstop - self.printtimer
-        # For printing, colors hardcoded
-
-        # for i in range(1, self.nbr_of_nodes-1):
-        print exectimeprint
-        name = "%s position" % self.nodes[1].get_type()
-        name1 = "%s position" % "Target"
-        #    if i == 1:
-        path = "%s path" % self.nodes[1].get_type()
-        plt.figure(1)
-        plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), 'r',
-                 label=path)  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
-        plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), "ko",
-                 label=name)
-
+    def plot_on_termn(self, alignnbr):
         """
-
-        plt.plot(self.nodes[1].get_measured_x_positions(), self.nodes[1].get_measured_y_positions(), 'r',
-                 label=path)  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
-        plt.plot(self.nodes[1].get_measured_x_positions(), self.nodes[1].get_measured_y_positions(), "ko",
-                 label=name)
-        plt.plot(self.nodes[1].get_target_x_positions(), self.nodes[1].get_target_y_positions(), "o", mfc='none',
-                 mec='#00bb00',
-                 label=name1)
-        if (len(self.nodes[1].get_measured_x_positions())) > 0:
-            plt.plot(self.nodes[1].get_measured_x_positions()[len(self.nodes[1].get_measured_x_positions()) - 1],
-                     self.nodes[1].get_measured_y_positions()[len(self.nodes[1].get_measured_x_positions()) - 1], "yo", label='Final position')"""
-
-        name = "%s position" % self.nodes[2].get_type()
-        path = "%s path" % self.nodes[2].get_type()
-        plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(),
-                 'r')  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
-        plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(), "ko")
-        plt.plot(self.testplotX, self.testplotY, "o", mfc='none', mec='#00bb00', label=name1)
-        if (len(self.nodes[1].get_corrected_x_positions())) > 0:
-            plt.plot(self.nodes[1].get_corrected_x_positions()[len(self.nodes[1].get_corrected_x_positions()) - 1],
-                     self.nodes[1].get_corrected_y_positions()[len(self.nodes[1].get_corrected_x_positions()) - 1],
-                     "yo", label = 'Final position')
-        if (len(self.nodes[2].get_corrected_x_positions())) > 0:
-            plt.plot(self.nodes[2].get_corrected_x_positions()[len(self.nodes[2].get_corrected_x_positions()) - 1],
-                     self.nodes[2].get_corrected_y_positions()[len(self.nodes[2].get_corrected_x_positions()) - 1],
-                     "yo")
+        Note that this function should only be called when two robots are used.
+        Todo: Make generic plot function for n-number of robots.
+        :param alignnbr: plot iterative(0) or simultaneous(1)
+        :return: none
         """
-        plt.plot(self.nodes[2].get_measured_x_positions(), self.nodes[2].get_measured_y_positions(),
-                 'r')  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
-        plt.plot(self.nodes[2].get_measured_x_positions(), self.nodes[2].get_measured_y_positions(), "ko")
-        if (len(self.nodes[1].get_measured_x_positions())) > 0:
-            plt.plot(self.nodes[2].get_measured_x_positions()[len(self.nodes[2].get_measured_x_positions()) - 1],
-                     self.nodes[2].get_measured_y_positions()[len(self.nodes[2].get_measured_x_positions()) - 1], "yo")
-        plt.plot(self.nodes[2].get_target_x_positions(), self.nodes[2].get_target_y_positions(), "o", mfc='none',
-                 mec='#00bb00')"""
+        if alignnbr == 1:
+            plt.figure(1)  # Plot for path
+            name = "%s position" % self.nodes[1].get_type()
+            name1 = "%s position" % "Target"
+            path = "%s path" % self.nodes[1].get_type()
+            #For robot #1, x-coordinate, y-coordinate and target(labels included).
+            plt.plot(self.nodes[1].get_measured_x_positions(), self.nodes[1].get_measured_y_positions(), 'r',
+                     label=path)
+            plt.plot(self.nodes[1].get_measured_x_positions(), self.nodes[1].get_measured_y_positions(), "ko",
+                     label=name)
+            plt.plot(self.nodes[1].get_target_x_positions(), self.nodes[1].get_target_y_positions(), "o", mfc='none',
+                     mec='#00bb00', label=name1)
 
-        name = "%s position" % self.nodes[0].get_type()
-        plt.plot(self.nodes[0].get_measured_x_positions(), self.nodes[0].get_measured_y_positions(), "mo", label=name)
-        name = "%s position" % self.nodes[3].get_type()
-        plt.plot(self.nodes[3].get_measured_x_positions(), self.nodes[3].get_measured_y_positions(), "co", label=name)
+            #For robot #2, x-coordinate, y-coordinate and target (without labels). For-loop this.
+            plt.plot(self.nodes[2].get_measured_x_positions(), self.nodes[2].get_measured_y_positions(), 'r')
+            plt.plot(self.nodes[2].get_measured_x_positions(), self.nodes[2].get_measured_y_positions(), "ko")
+            plt.plot(self.nodes[2].get_target_x_positions(), self.nodes[2].get_target_y_positions(), "o", mfc='none',
+                     mec='#00bb00')
 
-        #Comment out this if no line plot
-        #xs = [self.nodes[0].get_x_pos(), self.nodes[3].get_x_pos()]
-        #ys = [self.nodes[0].get_y_pos(), self.nodes[3].get_y_pos()]
-        #plt.plot(xs, ys, 'b')
+            #Plotting final positions. For loop this.
+            if (len(self.nodes[1].get_measured_x_positions())) > 0:
+                plt.plot(self.nodes[1].get_measured_x_positions()[len(self.nodes[1].get_measured_x_positions()) - 1],
+                         self.nodes[1].get_measured_y_positions()[len(self.nodes[1].get_measured_x_positions()) - 1], "yo",
+                         label='Final position')
+            if (len(self.nodes[2].get_measured_x_positions())) > 0:
+                plt.plot(self.nodes[2].get_measured_x_positions()[len(self.nodes[2].get_measured_x_positions()) - 1],
+                         self.nodes[2].get_measured_y_positions()[len(self.nodes[2].get_measured_x_positions()) - 1], "yo")
+            #Plot base and end positions
+            name = "%s position" % self.nodes[0].get_type()
+            plt.plot(self.nodes[0].get_measured_x_positions(), self.nodes[0].get_measured_y_positions(), "mo", label=name)
+            name = "%s position" % self.nodes[3].get_type()
+            plt.plot(self.nodes[3].get_measured_x_positions(), self.nodes[3].get_measured_y_positions(), "co", label=name)
 
+            # Final position line plot
+            xs = [self.nodes[0].get_x_pos(), self.nodes[3].get_x_pos()]
+            ys = [self.nodes[0].get_y_pos(), self.nodes[3].get_y_pos()]
+            plt.plot(xs, ys, 'b', label='Target line')
 
-
-        #plt.plot(self.testplotX, self.testplotY, "o", mfc='none', mec='#00bb00', label=name1)
-        plt.plot(-1, 2, 'x', label="Anchor position", color='r', mew=4, ms=7)  # number 1
-        plt.plot(2, 0, 'x', color='r', mew=4, ms=7)  # number 2
-        plt.plot(-1, -2, 'x', color='r', mew=5, ms=7)  # number 3
-        plt.axis([-4, 4, -4, 4], aspect=1)
-        plt.legend(loc='lower right', numpoints=1)
-        plt.figure(2)
-        plt.plot(self.exectimestuff, self.contplotX_1, 'r', label='Velocity')
-        plt.plot(self.exectimestuff, self.contplotX_1, 'rx')
-        plt.plot(self.exectimestuff, self.contplotZ_1, 'b', label='Angular velocity')
-        plt.plot(self.exectimestuff, self.contplotZ_1, 'bx')
-        plt.plot(self.exectimestuff, self.contplotX_2, 'r')
-        plt.plot(self.exectimestuff, self.contplotX_2, 'rx')
-        plt.plot(self.exectimestuff, self.contplotZ_2, 'b')
-        plt.plot(self.exectimestuff, self.contplotZ_2, 'bx')
-        plt.legend()
-        plt.figure(3)
-        vanilla = self.nodes[1].get_controls().get_dist_log()
-        tbc = self.nodes[2].get_controls().get_dist_log()
-        print len(vanilla)
-        print len(tbc)
-        print len(self.exectimestuff)
-        print len(vanilla[:len(self.exectimestuff)])
-        if len(vanilla) == len(self.exectimestuff):
-            plt.plot(self.exectimestuff, vanilla, 'b', label='Cost function for robot')
-        else:
-            plt.plot(self.exectimestuff, vanilla[:len(self.exectimestuff)], 'b', label='Cost function for robot')
-        if len(tbc) == len(self.exectimestuff):
-            plt.plot(self.exectimestuff, tbc, 'b')
-        else:
-            plt.plot(self.exectimestuff, tbc[:len(self.exectimestuff)], 'b')
-
-        if len(vanilla) == len(tbc):
-            wotlk = vanilla + tbc
-        elif len(vanilla) > len(tbc):
-            wotlk = vanilla[:len(tbc)-1] + tbc
-        else:
-            wotlk = vanilla + tbc[:len(vanilla) - 1]
-
-        if len(wotlk) == len(self.exectimestuff):
-            plt.plot(self.exectimestuff, wotlk, 'r', label='Cost function')
-        else:
-            plt.plot(self.exectimestuff, wotlk[:len(self.exectimestuff)], 'r', label='Cost function')
-
-        plt.legend(loc='lower right', numpoints=1)
-        plt.figure(4)
-        plt.plot(self.dist_log_1, 'ro', label='Cost function for robot')
-        plt.plot(self.dist_log_2, 'ro')
-        plt.plot(self.dist_log_1, 'r')
-        plt.plot(self.dist_log_2, 'r')
-        plt.legend(loc='lower right', numpoints=1)
-        ####################################
-        plt.figure(5)
-        plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), 'r',label=path)  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
-        plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), "ko",
-                label=name)
-        """
-        plt.plot(self.nodes[1].get_measured_x_positions(), self.nodes[1].get_measured_y_positions(), 'r',
-                 label=path)  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
-        plt.plot(self.nodes[1].get_measured_x_positions(), self.nodes[1].get_measured_y_positions(), "ko",
-                 label=name)
-        plt.plot(self.nodes[1].get_target_x_positions(), self.nodes[1].get_target_y_positions(), "o", mfc='none',
-                 mec='#00bb00',
-                 label=name1)
-        if (len(self.nodes[1].get_measured_x_positions())) > 0:
-            plt.plot(self.nodes[1].get_measured_x_positions()[len(self.nodes[1].get_measured_x_positions()) - 1],
-                     self.nodes[1].get_measured_y_positions()[len(self.nodes[1].get_measured_x_positions()) - 1], "yo", label = 'Final position')"""
-
-        name = "%s position" % self.nodes[2].get_type()
-        path = "%s path" % self.nodes[2].get_type()
-        plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(),
-                 'r')  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
-        plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(), "ko")
-        plt.plot(self.testplotX, self.testplotY, "o", mfc='none', mec='#00bb00', label=name1)
-        if (len(self.nodes[1].get_corrected_x_positions())) > 0:
-            plt.plot(self.nodes[1].get_corrected_x_positions()[len(self.nodes[1].get_corrected_x_positions()) - 1],
-                     self.nodes[1].get_corrected_y_positions()[len(self.nodes[1].get_corrected_x_positions()) - 1],
-                     "yo", label='Final position')
-        if (len(self.nodes[2].get_corrected_x_positions())) > 0:
-            plt.plot(self.nodes[2].get_corrected_x_positions()[len(self.nodes[2].get_corrected_x_positions()) - 1], self.nodes[2].get_corrected_y_positions()[len(self.nodes[2].get_corrected_x_positions()) - 1], "yo")
-        """
-        plt.plot(self.nodes[2].get_measured_x_positions(), self.nodes[2].get_measured_y_positions(),
-                 'r')  # color = colors[i])#color = "#"+hex(int(0xffffff*np.random.rand()))[2:])
-        plt.plot(self.nodes[2].get_measured_x_positions(), self.nodes[2].get_measured_y_positions(), "ko")
-        if (len(self.nodes[1].get_measured_x_positions())) > 0:
-            plt.plot(self.nodes[2].get_measured_x_positions()[len(self.nodes[2].get_measured_x_positions()) - 1],
-                     self.nodes[2].get_measured_y_positions()[len(self.nodes[2].get_measured_x_positions()) - 1], "yo")
-        plt.plot(self.nodes[2].get_target_x_positions(), self.nodes[2].get_target_y_positions(), "o", mfc='none',
-                 mec='#00bb00')"""
-
-        name = "%s position" % self.nodes[0].get_type()
-        plt.plot(self.nodes[0].get_measured_x_positions(), self.nodes[0].get_measured_y_positions(), "mo", label=name)
-        name = "%s position" % self.nodes[3].get_type()
-        plt.plot(self.nodes[3].get_measured_x_positions(), self.nodes[3].get_measured_y_positions(), "co", label=name)
-
-        #Comment out this if no line plot
-        xs = [self.nodes[0].get_x_pos(), self.nodes[3].get_x_pos()]
-        ys = [self.nodes[0].get_y_pos(), self.nodes[3].get_y_pos()]
-        plt.plot(xs, ys, 'b', label='Target line')
+            #Plot Anchor Positions
+            plt.plot(-3, 2, 'x', label="Anchor position", color='r', mew=4, ms=7)  # number 1
+            plt.plot(3, 0, 'x', color='r', mew=4, ms=7)  # number 2
+            plt.plot(-2, -3, 'x', color='r', mew=5, ms=7)  # number 3
+            plt.axis([-5, 5, -5, 6], aspect=1)
+            plt.legend(loc='lower right', numpoints=1)
 
 
+        elif alignnbr == 2:
+            plt.figure(1)#Plot for path.
+            name = "%s position" % self.nodes[1].get_type()
+            name1 = "%s position" % "Target"
+            path = "%s path" % self.nodes[1].get_type()
+            # For robot #1, x-coordinate and y-coordinate, labels included.
+            plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), 'r',
+                     label=path)
+            plt.plot(self.nodes[1].get_corrected_x_positions(), self.nodes[1].get_corrected_y_positions(), "ko",
+                     label=name)
+            # For robot #2, x-coordinate and y-coordinate, without labels.
+            plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(),
+                     'r')
+            plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(), "ko")
+            #Plot target positions
+            plt.plot(self.nodes[1].get_target_x_positions_from_controls(),
+                     self.nodes[1].get_target_y_positions_from_controls(), "o", mfc='none', mec='#00bb00', label=name1)
+            plt.plot(self.nodes[2].get_target_x_positions_from_controls(),
+                     self.nodes[2].get_target_y_positions_from_controls(), "o", mfc='none', mec='#00bb00')
+            #Plotting final positions
+            if (len(self.nodes[1].get_corrected_x_positions())) > 0:
+                plt.plot(self.nodes[1].get_corrected_x_positions()[len(self.nodes[1].get_corrected_x_positions()) - 1],
+                         self.nodes[1].get_corrected_y_positions()[len(self.nodes[1].get_corrected_x_positions()) - 1],
+                         "yo", label='Final position')
+            if (len(self.nodes[2].get_corrected_x_positions())) > 0:
+                plt.plot(self.nodes[2].get_corrected_x_positions()[len(self.nodes[2].get_corrected_x_positions()) - 1],
+                         self.nodes[2].get_corrected_y_positions()[len(self.nodes[2].get_corrected_x_positions()) - 1], "yo")
 
-        #plt.plot(self.testplotX, self.testplotY, "o", mfc='none', mec='#00bb00', label=name1)
-        plt.plot(-1, 2, 'x', label="Anchor position", color='r', mew=4, ms=7)  # number 1
-        plt.plot(2, 0, 'x', color='r', mew=4, ms=7)  # number 2
-        plt.plot(-1, -2, 'x', color='r', mew=5, ms=7)  # number 3
-        plt.axis([-4, 4, -4, 4], aspect=1)
-        plt.legend(loc='lower right', numpoints=1)
+            # Plot base and end positions
+            name = "%s position" % self.nodes[0].get_type()
+            plt.plot(self.nodes[0].get_measured_x_positions(), self.nodes[0].get_measured_y_positions(), "mo",
+                     label=name)
+            name = "%s position" % self.nodes[3].get_type()
+            plt.plot(self.nodes[3].get_measured_x_positions(), self.nodes[3].get_measured_y_positions(), "co",
+                     label=name)
+
+            # Final position line plot
+            xs = [self.nodes[0].get_x_pos(), self.nodes[3].get_x_pos()]
+            ys = [self.nodes[0].get_y_pos(), self.nodes[3].get_y_pos()]
+            plt.plot(xs, ys, 'b', label='Target line')
+
+            #Plot Anchor positions
+            plt.plot(-3, 2, 'x', label="Anchor position", color='r', mew=4, ms=7)  # number 1
+            plt.plot(3, 0, 'x', color='r', mew=4, ms=7)  # number 2
+            plt.plot(-2, -3, 'x', color='r', mew=5, ms=7)  # number 3
+            plt.axis([-5, 5, -5, 6], aspect=1)
+            plt.legend(loc='lower right', numpoints=1)
+
+            plt.figure(2)  # Plot for controls
+            #Exectimesstuff might not always match dimensions of controls and will not then be plotted.
+            #(Fix this by making a new terminating function that makes sure that the iteration is completed before exit
+            if (len(self.exectimestuff) == len(self.nodes[1].get_control_x_history())):
+                plt.plot(self.exectimestuff, self.nodes[1].get_control_x_history(), 'r', label='Velocity')
+                plt.plot(self.exectimestuff, self.nodes[1].get_control_x_history(), 'rx')
+                plt.plot(self.exectimestuff, self.nodes[1].get_control_z_history(), 'b', label='Angular velocity')
+                plt.plot(self.exectimestuff, self.nodes[1].get_control_z_history(), 'bx')
+            if (len(self.exectimestuff) == len(self.nodes[2].get_control_x_history())):
+                plt.plot(self.exectimestuff, self.nodes[2].get_control_x_history(), 'r')
+                plt.plot(self.exectimestuff, self.nodes[2].get_control_x_history(), 'rx')
+                plt.plot(self.exectimestuff, self.nodes[2].get_control_z_history(), 'b')
+                plt.plot(self.exectimestuff, self.nodes[2].get_control_x_history(), 'bx')
+            plt.legend()
+
+
         plt.show()
 
-    ############################################################################################################
+
+    def terminator(self):
+        """
+        On Ctrl-C terminate
+        :return:
+        """
+        self.plot_on_termn(self.coordinate) #Plot on terminate
+
+
 
 
 
@@ -461,9 +394,6 @@ class MainController():
         correct_position = np.array([], dtype=np.float32)
         left = robot.get_left_neighbor()
         right = robot.get_right_neighbor()
-        print left
-        print right
-        ###TODO FIX ERROR HANDLING HERE + TIMEOUT
         okposleft = False
         okposright = False
         while not (okposleft):

@@ -49,17 +49,22 @@ class Node(object):
         self.corrected_positions = np.array([], dtype=np.float32)
         self.corrected_x_positions = np.array([], dtype=np.float32)
         self.corrected_y_positions = np.array([], dtype=np.float32)
-        #temp for align1.0
+
+        #Target positions storage, for align1.0 the node knows the target positions
         self.target_positions = np.array([], dtype=np.float32)
         self.target_x_positions = np.array([], dtype=np.float32)
         self.target_y_positions = np.array([], dtype=np.float32)
+
+        #Controls storage
+        self.contplot_x = np.array([], dtype=np.float64)
+        self.contplot_z = np.array([], dtype=np.float64)
 
 
         self.x = 0  # velocity
         self.z = 0  # angular velocity
         self.state = np.array([[0.0], [0.0], [0.0], [0.0], [0.0], [
             0.0]])  # state = x_position, x_velocity, y_position, y_velocity, theta, theta_velocity(rotation velocity)
-        # borde inte i state vara z?
+
 
         self.kalman = Kalman.Kalman()
         self.controls = Controls.Controls()
@@ -231,7 +236,8 @@ class Node(object):
         :return: corrected y positions
         """
         return self.corrected_y_positions
-#TEMP FOR ALIGN1.0 PLOTS
+
+    # For align1.0 the node knows the target positions
     def get_target_positions(self):
         """
 
@@ -263,9 +269,52 @@ class Node(object):
         self.target_x_positions = np.append(self.target_x_positions, target[0])
         self.target_y_positions = np.append(self.target_y_positions, target[1])
         return
+#For align2 information on target is located in controls
+    def get_target_x_positions_from_controls(self):
+        """
 
+        :return: corrected x positions
+        """
+        return self.controls.get_target_x_positions()
 
+    def get_target_y_positions_from_controls(self):
+        """
 
+        :return: corrected y positions
+        """
+        return self.controls.get_target_y_positions()
+
+    def get_control_x_history(self):
+        """
+
+        :return: corrected x positions
+        """
+        return self.contplot_x
+
+    def get_control_z_history(self):
+        """
+
+        :return: corrected y positions
+        """
+        return self.contplot_z
+
+    def append_control_z_history(self, cont):
+        """
+
+        :return: corrected positions
+        """
+
+        self.contplot_z = np.append(self.contplot_z, cont)
+        return
+
+    def append_control_x_history(self, cont):
+        """
+
+        :return: corrected positions
+        """
+
+        self.contplot_x = np.append(self.contplot_x, cont)
+        return
 
 
     def get_left_neighbor(self):
