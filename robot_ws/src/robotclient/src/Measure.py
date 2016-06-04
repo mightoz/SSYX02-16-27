@@ -24,9 +24,9 @@ class Measure(object):
         self.anchors = []
         for j in range(0, self.nbr_of_anchors):
             self.anchors += [Anchor.Anchor()]
-        self.__set_anchor__(0, 106, -1, 2)
-        self.__set_anchor__(1, 114, 2, 0)
-        self.__set_anchor__(2, 108, -1, -2)
+        self.__set_anchor__(0, 106, -1.0, -2.0)
+        self.__set_anchor__(1, 114, -1.0, 2.0)
+        self.__set_anchor__(2, 108, 2.0, 0.0)
 
     def set_nbr_of_measurements(self, val):
         self.nbr_of_measurements = np.int(np.abs(val))
