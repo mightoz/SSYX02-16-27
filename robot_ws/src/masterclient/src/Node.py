@@ -1,23 +1,19 @@
 #!/usr/bin/env python
 
-# import roslib; roslib.load_manifest(PKG)
+
 import rospy
 import numpy as np
 
 from rospy.numpy_msg import numpy_msg
 from robotclient.msg import Floats
 from geometry_msgs.msg import Twist
-# from robotclient.msg import *
 
 import Kalman
 import Controls
 
 from robotclient.srv import *
 
-rate = 0
 
-
-# TODO - neighbors might be better if they were actual objects perhaps
 class Node(object):
     def __init__(self, num, node_type):
         """
@@ -50,21 +46,19 @@ class Node(object):
         self.corrected_x_positions = np.array([], dtype=np.float32)
         self.corrected_y_positions = np.array([], dtype=np.float32)
 
-        #Target positions storage, for align1.0 the node knows the target positions
+        # Target positions storage, for align1.0 the node knows the target positions
         self.target_positions = np.array([], dtype=np.float32)
         self.target_x_positions = np.array([], dtype=np.float32)
         self.target_y_positions = np.array([], dtype=np.float32)
 
-        #Controls storage
+        # Controls storage
         self.contplot_x = np.array([], dtype=np.float64)
         self.contplot_z = np.array([], dtype=np.float64)
-
 
         self.x = 0  # velocity
         self.z = 0  # angular velocity
         self.state = np.array([[0.0], [0.0], [0.0], [0.0], [0.0], [
             0.0]])  # state = x_position, x_velocity, y_position, y_velocity, theta, theta_velocity(rotation velocity)
-
 
         self.kalman = Kalman.Kalman()
         self.controls = Controls.Controls()
@@ -105,7 +99,7 @@ class Node(object):
         :return:
         """
         pos64 = np.array(pos, dtype=np.float64)
-        self.state[0, 0] = pos64[0] ##Doesn't work
+        self.state[0, 0] = pos64[0]
         self.state[2, 0] = pos64[1]
         # Log position of end node (Robot and base are logged when they change state).
         if self.type == "End":
@@ -128,30 +122,66 @@ class Node(object):
         return self.z
 
     def get_state(self):
+        """
+
+        :return: state
+        """
         return self.state
 
     def get_x_pos(self):
+        """
+
+        :return: x_pos
+        """
         return self.state[0, 0]
 
     def get_x_vel(self):
+        """
+
+        :return: x_vel
+        """
         return self.state[1, 0]
 
     def get_y_pos(self):
+        """
+
+        :return: y_pos
+        """
         return self.state[2, 0]
 
     def get_y_vel(self):
+        """
+
+        :return: y_vel
+        """
         return self.state[3, 0]
 
     def get_theta(self):
+        """
+
+        :return: theta
+        """
         return self.state[4, 0]
 
     def get_theta_vel(self):
+        """
+
+        :return: theta_vel
+        """
         return self.state[5, 0]
 
     def get_pos(self):
+        """
+
+        :return: pos
+        """
         return np.array([self.get_x_pos(), self.get_y_pos()])
 
     def get_type(self):
+        """
+
+        :return: type
+        """
         return self.type
 
     def get_kalman(self):
@@ -175,9 +205,9 @@ class Node(object):
         """
 
         tmp_pos = np.array([],
-                           dtype=np.float32)  # TODO: Was np.empty for some reason. If problems are caused, check here when debugging.
+                           dtype=np.float32)
         if self.type == "End":
-            tmp_pos = self.get_pos()  # self.pos
+            tmp_pos = self.get_pos()
         else:
             srv = 'get_coord' + str(self.node)
             rospy.wait_for_service(srv)
@@ -269,7 +299,8 @@ class Node(object):
         self.target_x_positions = np.append(self.target_x_positions, target[0])
         self.target_y_positions = np.append(self.target_y_positions, target[1])
         return
-#For align2 information on target is located in controls
+
+    # For align2 information on target is located in controls
     def get_target_x_positions_from_controls(self):
         """
 
@@ -315,7 +346,6 @@ class Node(object):
 
         self.contplot_x = np.append(self.contplot_x, cont)
         return
-
 
     def get_left_neighbor(self):
         """
