@@ -34,10 +34,12 @@ def typecast(x, t):
     """
 
     :param x: A number or array of numbers to be typecasted.
-    :param t: The desired new type. 16 would produce a unsigned 16-bit integer or array of integers.
-    :return: The given number typecasted to its new type. The 16-bit hex number 0xFACE typecasted to 8-bit would return
-    a 8-bit array containing [0xFA, 0xCE]. Likewise the 8-bit array [0xDE, 0xAD, 0xBE, 0xEF] typecasted to 32-bit would
-    return the 32-bit integer 0xDEADBEEF.
+    :param t: The desired new type. 16 would produce a unsigned 16-bit
+    integer or array of integers.
+    :return: The given number typecasted to its new type. The 16-bit hex
+    number 0xFACE typecasted to 8-bit would return a 8-bit array containing
+    [0xFA, 0xCE]. Likewise the 8-bit array [0xDE, 0xAD, 0xBE, 0xEF]
+    typecasted to 32-bit would return the 32-bit integer 0xDEADBEEF.
     """
     if x is not None:
         if t == 8:

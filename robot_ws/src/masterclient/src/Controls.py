@@ -1,49 +1,55 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 def get_rot_dir(theta, curr_pos, tar_pos):
     """
+    Calculates the rotation direction based on
+    target position, current position and orientation
 
     :param theta: angle
     :param curr_pos: [x_start,y_start]
     :param tar_pos: [x_end,y_end]
-    :return:
+    :return: Direction to rotate: 1 (CCW), -1 (CW)
     """
-    # calculate the angle between the x-axis and the line intersecting end_pos and start_pos
+    # calculate the angle between the x-axis and the line intersecting end_pos
+    # and start_pos
     if np.abs(curr_pos[0] - tar_pos[0]) > 1e-30:
         z1 = curr_pos - tar_pos
         z2 = np.array([1, 0])
         if curr_pos[1] >= tar_pos[1]:  # 0 <= phi <= pi
-            phi = np.arccos(np.dot(z1, z2) / (np.linalg.norm(z1) * np.linalg.norm(z2)))
+            phi = np.arccos(np.dot(z1, z2)/(np.linalg.norm(z1) *
+                                            np.linalg.norm(z2)))
         else:  # pi < phi < 2*pi
-            phi = 2 * np.pi - np.arccos(np.dot(z1, z2) / (np.linalg.norm(z1) * np.linalg.norm(z2)))
+            phi = 2*np.pi-np.arccos(np.dot(z1, z2)/(np.linalg.norm(z1) *
+                                                    np.linalg.norm(z2)))
     else:
-        phi = np.sign(curr_pos[1] - tar_pos[1]) * np.pi / 2
+        phi = np.sign(curr_pos[1]-tar_pos[1])*np.pi/2
 
     # calculate the effective angle needed to determine how to change Z
-    angle = np.mod(theta - np.pi, 2 * np.pi)
+    angle = np.mod(theta-np.pi, 2*np.pi)
     # determine the rotation direction (+1 ccw, -1 cw)
+    direction = 0
     if 0 <= phi <= np.pi:
         if phi <= angle < (phi + np.pi):
-            return -1
+            direction = -1
         else:
-            return 1
+            direction = 1
     else:
         if np.mod(phi + np.pi, 2 * np.pi) <= angle < phi:
-            return 1
+            direction = 1
         else:
-            return -1
+            direction = -1
+    return direction
 
-
+"""
 def get_trans_magn_2(current, target, t):
-    """
+    ""#"
 
     :param current:
-    :param target:
+    :param target:p
     :param t:
     :return:
-    """
+    ""#"
     length_to_target = np.linalg.norm(target - current)
 
     # X function of Z and length
@@ -61,14 +67,14 @@ def get_trans_magn_2(current, target, t):
 
 
 def get_rot_magn_2(theta, current, target, t):
-    """
+    ""#"
 
     :param theta:
     :param current:
     :param target:
     :param t:
     :return:
-    """
+    ""#"
     direction = get_rot_dir(theta, current, target)
 
     a = np.array([[np.cos(theta), np.sin(theta)],
@@ -103,16 +109,18 @@ def get_rot_magn_2(theta, current, target, t):
     else:
         z = phi / t * za * direction
     return z
+"""
 
 
 class Controls(object):
     def __init__(self):
-
-        self.x_min = 0  # Minimm speed forwards
-        self.x_max = 0.2  # Maximum speed forwards
-        self.z_min = 0  # Minimum rotation speed, absolute value
-        self.z_max = 1  # Maximum rotation speed, absolute value
-        self.k = 0.3  # Gradient step
+        self.x_min = 0  # Minimm speed forwards [m/s]
+        self.x_max = 0.2  # Maximum speed forwards [m/s
+        self.z_min = 0  # Minimum rotation speed, absolute value [rad/s]
+        self.z_max = 1  # Maximum rotation speed, absolute value [rad/s]
+        self.k = 0.3  # Gradient step (0<k<1)
+        # t_x and t_z should be related to the execution time in each
+        # iteration. Changing this would yield slightly better results.
         self.t_x = 1  # Speed factor forward, lower factor = higher speed, !=0
         self.t_z = 1  # Speed factor rotation, -||-  !=0
         self.ok_dist = 0.04  # Min distance to next targetpos, k affects this
@@ -125,8 +133,8 @@ class Controls(object):
         """
 
         :param curr_pos: your position
-        :param neighbour_1_pos: your first neighbour
-        :param neighbour_2_pos: your left neighbour
+        :param neighbour_1_pos: position of your first neighbour
+        :param neighbour_2_pos: position of your left neighbour
         :return: the next target position
         """
         dist1 = neighbour_1_pos - curr_pos
@@ -170,9 +178,11 @@ class Controls(object):
             d = np.array([x[0] * np.cos(theta), x[0] * np.sin(theta)])
             if np.linalg.norm(y) > 1e-40:
                 if x[0] >= 0:
-                    phi = np.arccos(np.dot(y, d) / (np.linalg.norm(y) * np.linalg.norm(d)))
+                    phi = np.arccos(np.dot(y, d)/(np.linalg.norm(y) *
+                                                  np.linalg.norm(d)))
                 else:
-                    phi = np.pi - np.arccos(np.dot(y, d) / (np.linalg.norm(y) * np.linalg.norm(d)))
+                    phi = np.pi-np.arccos(np.dot(y, d)/(np.linalg.norm(y) *
+                                                        np.linalg.norm(d)))
             else:
                 phi = 0
             if phi / self.t_z > self.z_max:
@@ -194,12 +204,17 @@ class Controls(object):
         neighbour exist, set it to 0
         :return: the next controls; X, Z
         """
-        tar_pos = self.find_next_pos(curr_pos, neighbour_1_pos, neighbour_2_pos)
-        next_z = get_rot_dir(theta, curr_pos, tar_pos) * self.get_rot_magn_1(theta, curr_pos, tar_pos)
-        next_x = self.get_trans_magn_1(curr_pos, tar_pos, np.abs(next_z * self.t_z))
-        #Update history of target positions for plotting
-        self.target_x_positions = np.append(self.target_x_positions, tar_pos[0])
-        self.target_y_positions = np.append(self.target_y_positions, tar_pos[1])
+        tar_pos = self.find_next_pos(curr_pos, neighbour_1_pos,
+                                     neighbour_2_pos)
+        next_z = get_rot_dir(theta, curr_pos, tar_pos) *\
+                 self.get_rot_magn_1(theta, curr_pos, tar_pos)
+        next_x = self.get_trans_magn_1(curr_pos, tar_pos,
+                                       np.abs(next_z * self.t_z))
+        # Update history of target positions for plotting
+        self.target_x_positions = np.append(self.target_x_positions,
+                                            tar_pos[0])
+        self.target_y_positions = np.append(self.target_y_positions,
+                                            tar_pos[1])
         return [next_x, next_z]
 
     def set_x_max(self, val):
@@ -262,7 +277,8 @@ class Controls(object):
     def set_t_x(self, val):
         """
 
-        :param val: time to reach target pos if as if the robot was facing its target pos
+        :param val: time to reach target pos if as if the
+        robot was facing its target pos
         :return:
         """
         if val <= 0:
@@ -284,7 +300,8 @@ class Controls(object):
     def set_ok_dist(self, val):
         """
 
-        :param val: minimum distance to target pos that will make the robot move
+        :param val: minimum distance to target pos that
+        will make the robot move
         :return:
         """
         if val < 1e-40:
@@ -330,7 +347,8 @@ class Controls(object):
     def get_t_x(self):
         """
 
-        :return: time to reach target pos if as if the robot was facing its target pos
+        :return: time to reach target pos if as if
+        the robot was facing its target pos
         """
         return self.t_x
 
@@ -348,17 +366,16 @@ class Controls(object):
         """
         return self.ok_dist
 
-
     def get_target_x_positions(self):
         """
 
-        :return: minimum distance to target pos that will make the robot move
+        :return: Target position x-part
         """
         return self.target_x_positions
 
     def get_target_y_positions(self):
         """
 
-        :return: minimum distance to target pos that will make the robot move
+        :return: Target position y-part
         """
         return self.target_y_positions

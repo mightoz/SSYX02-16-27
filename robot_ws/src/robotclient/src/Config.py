@@ -1,3 +1,8 @@
+"""
+Config properties of the RCMs.
+"""
+
+
 class Config(object):
     def __init__(self):
         self.msg_id = None
