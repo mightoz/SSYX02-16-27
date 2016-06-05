@@ -84,7 +84,7 @@ class MainController():
 
         # Init for inital orientation and position
         for i in range(0, self.nbr_of_nodes - 1):  # Remove -1 if UWB connected to END
-            print "For loop", i
+            print "For robot", i
             first_pos = np.empty([], dtype=np.float32)
             second_pos = np.empty([], dtype=np.float32)
             if i != 0 and i != self.nbr_of_nodes - 1:
@@ -146,7 +146,7 @@ class MainController():
                     angle = phi
                 else:
                     angle = 2 * np.pi - phi
-                print angle
+                print "Initial orientation: ", angle
                 # update state
                 self.nodes[i].set_state(np.array([[second_pos[0]], [self.nodes[i].get_x_vel()],
                                                   [second_pos[1]], [self.nodes[i].get_y_vel()],
@@ -157,7 +157,6 @@ class MainController():
 
     def align_robots(self, data):
         self.alignMethod = int(data.data.data[len(data.data.data) - 1])  # Saves which align method is going to be used
-        print "This is number of iterations", self.calls
         if self.calls == 0:
             self.calibrate()
         if data.data.data == "align1":
@@ -169,7 +168,7 @@ class MainController():
 
         # Measure coordinate of base (Used only with UWB)
         base_pos = np.array(self.nodes[0].measure_coordinates(), dtype=np.float32)
-        if (np.size(base_pos) == 2):
+        if np.size(base_pos) == 2:
             self.nodes[0].set_pos(base_pos)  # Update position of base
 
         # Measure coordinate of end node (Used only with UWB)
@@ -192,7 +191,6 @@ class MainController():
     def align_robots_2(self):
         self.iteratorFinished = self.iteratorCalled
         self.iteratorCalled = time.time()
-        print "Time between align_robots call: ", self.iteratorCalled - self.iteratorFinished
         exectime = self.iteratorCalled - self.iteratorFinished
         corr_idx = 1 + np.mod(self.calls, self.nbr_of_nodes - 2)  # Decide which robot is allowed to measure
         for i in range(1, self.nbr_of_nodes - 1):  # Calculate/Estimate new state for all robots
@@ -209,9 +207,9 @@ class MainController():
                     new_state2 = self.nodes[i].get_kalman().predict(self.nodes[i].get_state(), self.nodes[i].get_x(),
                                                                     self.nodes[i].get_z(),
                                                                     exectime)
-                    print "Robot %s predicts" % i
+                    print "Robot %s predicts since it failed to measure position" % i
                 else:
-                    print "this was meas_pos", meas_pos
+                    print "this was measured position", meas_pos
                     # Update state with correction of measurement + kalman
                     new_state2 = self.nodes[i].get_kalman().correct(self.nodes[i].get_state(), meas_pos,
                                                                     self.nodes[i].get_x(),

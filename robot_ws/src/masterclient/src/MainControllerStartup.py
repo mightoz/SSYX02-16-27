@@ -1,19 +1,16 @@
 #!/usr/bin/env python
-
 import rospy
 from std_msgs.msg import String
 import time
-
 from masterclient.srv import *
 
 def talker():
-    #pub = rospy.Publisher("iterator", String, queue_size=10)
-    #rospy.wait_for_service('iterator')
-    #rospy.init_node('mainstarup', anonymous = True)
-    #rate = rospy.Rate(10)
-    #while not rospy.is_shutdown():
-    #	pub.publish("align2")
-    #	rate.sleep()
+    """
+    Iterator for Maincontroller.py
+    :return:
+    """
+    # Iteration time step, (recommended minimum = 0.25, have to be lower than t_x, and t_z in Controls.py)
+    runtime = 0.25
     try:
         rospy.init_node('robot_iterator')
         iterator = rospy.ServiceProxy('iterator', Iterator)
@@ -21,15 +18,11 @@ def talker():
             start = time.time()
             s = String()
             s.data = rospy.get_param(rospy.get_name()+'/cordfunc')
-            #s.data = "align1"
             resp1 = iterator(s)
             stop = time.time()
-            print "Time for iterator:", stop-start
             if s.data == "align2":
-                ##TODO ADD PARAM FOR TIME
-                if (0.25 - (stop-start)) > 0:
-                    time.sleep(0.25-(stop-start))
-            print "Total time iterator + delay:", time.time()-start
+                if (runtime - (stop-start)) > 0:
+                    time.sleep(runtime-(stop-start))
     except rospy.ServiceException, e:
         print "Service could not be called %s" %e
 

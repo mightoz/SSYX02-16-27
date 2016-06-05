@@ -81,10 +81,8 @@ class Node(object):
 
     def set_state(self, state):
         if self.type == "Robot":
-            print "State changed for robot."
             self.state = state
         else:  # If base or end, only update position. Rest of params should be immutable.
-            print "State changed for End or Base."
             self.state[0, 0] = state[0, 0]
             self.state[2, 0] = state[2, 0]
 

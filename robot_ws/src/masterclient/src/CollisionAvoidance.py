@@ -383,7 +383,6 @@ class CollisionAvoidance(object):
         times for the robots when they occur: collide, t_1, t_2
         """
         self.calls += 1
-        print self.calls
         new_x_1 = x_1
         new_z_1 = z_1
         new_x_2 = x_2
