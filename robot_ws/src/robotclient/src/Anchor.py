@@ -1,6 +1,12 @@
 import numpy as np
 
 
+"""
+This class is the anchors with known locations
+used for the reference grid.
+"""
+
+
 class Anchor(object):
 
     def __init__(self):
