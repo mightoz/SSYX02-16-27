@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 
-# import roslib; roslib.load_manifest(PKG)
 import rospy
 
 from rospy.numpy_msg import numpy_msg
-# from rospy_tutorials.msg import Floats
 from masterclient.msg import Floats
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
@@ -23,35 +21,34 @@ from masterclient.msg import *
 
 
 class MainController():
-    ############################################################################################################
-
     def handle_get_base(self, req):
+
         # f = Floats()
         basepos = req.data
-        f = np.array([basepos[0], basepos[1]], dtype=np.float32)  # temp for testing  
+        f = np.array([basepos[0], basepos[1]], dtype=np.float32)
         self.nodes[0].set_pos(f)
         return BaseEndGetCoordResponse(1)
 
     def handle_get_end(self, req):
         # f = Floats()
         endpos = req.data
-        f = np.array([endpos[0], endpos[1]], dtype=np.float32)  # temp for testing  
+        f = np.array([endpos[0], endpos[1]], dtype=np.float32)
         self.nodes[self.nbr_of_nodes - 1].set_pos(f)
         return BaseEndGetCoordResponse(1)
 
-    ##################################################################################################################
-
     def __init__(self, nbr_of_nodes):
-        self.calls = 0
-        self.dt = 0.25  # Timesteps for loop, used in kalmanpredict
 
+        # Runtime variables
+        self.calls = 0
         self.finishedalign2 = 0
         self.reachedalign2 = 0
         self.exectimestuff = []
-        self.coordinate = -1
+        self.alignMethod = -1
+
         # Instantiate Nodes
         self.nbr_of_nodes = nbr_of_nodes
         self.nodes = []
+
         for i in range(0, self.nbr_of_nodes):
             if i == 0:
                 self.nodes += [Node.Node(i, "Base")]
@@ -59,17 +56,20 @@ class MainController():
                 self.nodes += [Node.Node(i, "End")]
             else:
                 self.nodes += [Node.Node(i, "Robot")]
-        # Set inital Base/End position to defualt if measurement should fail
+
+        # Set inital Base/End position to defualt if
         initend = np.array([0, -2], dtype=np.float32)
         initbase = np.array([0, 3], dtype=np.float32)
         self.nodes[0].set_pos(initbase)
         self.nodes[self.nbr_of_nodes - 1].set_pos(initend)
+
+        # Instantiation for collision avoidance
         safedist = 1
         relsafedist = 0.01
         self.ca = CollisionAvoidance.CollisionAvoidance(safedist, relsafedist)
 
-        # s = rospy.Service('get_coordEnd', BaseEndGetCoord, self.handle_get_end) #Service for changing End Coords
-        # s = rospy.Service('get_coordBase', BaseEndGetCoord, self.handle_get_base)  #Service for changing Base Coords
+        # s = rospy.Service('get_coordEnd', BaseEndGetCoord, self.handle_get_end) #Use this service to change End Coords manually
+        # s = rospy.Service('get_coordBase', BaseEndGetCoord, self.handle_get_base)  #Use this service to change Base Coords manually
         self.iteratorCalled = time.time()
         self.iteratorFinished = time.time()
         service = rospy.Service('iterator', Iterator,
@@ -79,7 +79,7 @@ class MainController():
 
     def calibrate(self):
         """
-        Callibrates robots in area and updates inital position and theta accordingly
+        Calibrates robots in area and updates inital position and theta accordingly. AKA Startup Sequence
         """
 
         # Init for inital orientation and position
@@ -156,23 +156,24 @@ class MainController():
                 self.nodes[i].set_pos(second_pos)
 
     def align_robots(self, data):
-        #Save align number
-        self.coordinate = int(data.data.data[len(data.data.data)-1])
+        self.alignMethod = int(data.data.data[len(data.data.data) - 1])  # Saves which align method is going to be used
         print "This is number of iterations", self.calls
         if self.calls == 0:
             self.calibrate()
-        if (data.data.data == "align1"):
+        if data.data.data == "align1":
             self.align_robots_1()
-            self.calls = self.calls + 1
-        elif (data.data.data == "align2"):
+            self.calls += 1
+        elif data.data.data == "align2":
             self.align_robots_2()
-            self.calls = self.calls + 1
+            self.calls += 1
 
-        #Update base position for each iteration
+        # Measure coordinate of base (Used only with UWB)
         base_pos = np.array(self.nodes[0].measure_coordinates(), dtype=np.float32)
         if (np.size(base_pos) == 2):
             self.nodes[0].set_pos(base_pos)  # Update position of base
-        """IF END POS IS A UWB
+
+        # Measure coordinate of end node (Used only with UWB)
+        """
         end_pos = np.array(self.nodes[self.nbr_of_nodes-1].measure_coordinates(), dtype=np.float32)
         if (np.size(end_pos) == 2):
             self.nodes[0].set_pos(end_pos) #Update position of end"""
@@ -181,16 +182,12 @@ class MainController():
     def align_robots_1(self):
         # Loop through all of the robots
         for i in range(1, self.nbr_of_nodes - 1):
-            # Calulate correctposition for robot
-            print i
+            # Calculate correct position for robot
             possible_next_position = self.correct_pos(self.nodes[i])
             self.nodes[i].set_target_positions(possible_next_position)
-            print possible_next_position
             # Check if position is within a radius of 0.1m of possible_next_position
-            if (np.linalg.norm(self.nodes[i].measure_coordinates() - possible_next_position) > 0.1):
-                print "Tries to move"
+            if np.linalg.norm(self.nodes[i].measure_coordinates() - possible_next_position) > 0.1:
                 self.move_a_to_b(self.nodes[i], possible_next_position)  # Otherwise move
-                # TODO: ONLY CHECK AND THEN MOVE.
 
     def align_robots_2(self):
         self.iteratorFinished = self.iteratorCalled
@@ -206,7 +203,6 @@ class MainController():
                 self.nodes[i].set_state(new_state2)
                 print "Robot %s predicts" % i
             else:
-                meas_pos = np.empty(2)
                 meas_pos = np.array(self.nodes[i].measure_coordinates(),
                                     dtype=np.float32)  # Measure coordinates of robot
                 if np.size(meas_pos) != 2:  # If measurements failed, update state with kalman
@@ -227,9 +223,9 @@ class MainController():
         for i in range(1, self.nbr_of_nodes - 1):  # Calculate new controls at time k
             x3 = self.nodes[i].get_controls().calc_controls(self.nodes[i].get_theta(), self.nodes[i].get_pos(),
                                                             self.nodes[self.nodes[i].get_left_neighbor()].get_pos(),
-                                                            self.nodes[self.nodes[i].get_right_neighbor()].get_pos())  ##self.nodes[i].get_axlen()
+                                                            self.nodes[self.nodes[i].get_right_neighbor()].get_pos())
 
-            #Update controls
+            # Update controls
             self.nodes[i].set_x(x3[0])
             self.nodes[i].set_z(x3[1])
 
@@ -240,23 +236,23 @@ class MainController():
                                                            self.nodes[j].get_pos(), self.nodes[j].get_theta(),
                                                            self.nodes[j].get_x(), self.nodes[j].get_z(),
                                                            exectime)
-                #Update controls after collision avoidance
+                # Update controls after collision avoidance
                 self.nodes[i].set_x(x1)
                 self.nodes[i].set_z(z1)
                 self.nodes[j].set_x(x2)
                 self.nodes[j].set_z(z2)
-        #Send controls to robots
+        # Send controls to robots
         for i in range(1, self.nbr_of_nodes - 1):
             self.nodes[i].update_twist()
-            #For plotting controls, save in array of controls
+            # For plotting controls, save in array of controls
             self.nodes[i].append_control_x_history(self.nodes[i].get_x())
             self.nodes[i].append_control_z_history(self.nodes[i].get_z())
 
-        #Updates array containing time instances for control updates (for plotting)
-        if (self.calls == 0):
-            self.exectimestuff +=[exectime]
+        # Updates array containing time instances for control updates (for plotting)
+        if self.calls == 0:
+            self.exectimestuff += [exectime]
         else:
-            self.exectimestuff += [self.exectimestuff[len(self.exectimestuff)-1]+exectime]
+            self.exectimestuff += [self.exectimestuff[len(self.exectimestuff) - 1] + exectime]
 
     def plot_on_termn(self, alignnbr):
         """
@@ -270,7 +266,7 @@ class MainController():
             name = "%s position" % self.nodes[1].get_type()
             name1 = "%s position" % "Target"
             path = "%s path" % self.nodes[1].get_type()
-            #For robot #1, x-coordinate, y-coordinate and target(labels included).
+            # For robot #1, x-coordinate, y-coordinate and target(labels included).
             plt.plot(self.nodes[1].get_measured_x_positions(), self.nodes[1].get_measured_y_positions(), 'r',
                      label=path)
             plt.plot(self.nodes[1].get_measured_x_positions(), self.nodes[1].get_measured_y_positions(), "ko",
@@ -278,41 +274,44 @@ class MainController():
             plt.plot(self.nodes[1].get_target_x_positions(), self.nodes[1].get_target_y_positions(), "o", mfc='none',
                      mec='#00bb00', label=name1)
 
-            #For robot #2, x-coordinate, y-coordinate and target (without labels). For-loop this.
+            # For robot #2, x-coordinate, y-coordinate and target (without labels). For-loop this.
             plt.plot(self.nodes[2].get_measured_x_positions(), self.nodes[2].get_measured_y_positions(), 'r')
             plt.plot(self.nodes[2].get_measured_x_positions(), self.nodes[2].get_measured_y_positions(), "ko")
             plt.plot(self.nodes[2].get_target_x_positions(), self.nodes[2].get_target_y_positions(), "o", mfc='none',
                      mec='#00bb00')
 
-            #Plotting final positions. For loop this.
+            # Plotting final positions. For loop this.
             if (len(self.nodes[1].get_measured_x_positions())) > 0:
                 plt.plot(self.nodes[1].get_measured_x_positions()[len(self.nodes[1].get_measured_x_positions()) - 1],
-                         self.nodes[1].get_measured_y_positions()[len(self.nodes[1].get_measured_x_positions()) - 1], "yo",
+                         self.nodes[1].get_measured_y_positions()[len(self.nodes[1].get_measured_x_positions()) - 1],
+                         "yo",
                          label='Final position')
             if (len(self.nodes[2].get_measured_x_positions())) > 0:
                 plt.plot(self.nodes[2].get_measured_x_positions()[len(self.nodes[2].get_measured_x_positions()) - 1],
-                         self.nodes[2].get_measured_y_positions()[len(self.nodes[2].get_measured_x_positions()) - 1], "yo")
-            #Plot base and end positions
+                         self.nodes[2].get_measured_y_positions()[len(self.nodes[2].get_measured_x_positions()) - 1],
+                         "yo")
+            # Plot base and end positions
             name = "%s position" % self.nodes[0].get_type()
-            plt.plot(self.nodes[0].get_measured_x_positions(), self.nodes[0].get_measured_y_positions(), "mo", label=name)
+            plt.plot(self.nodes[0].get_measured_x_positions(), self.nodes[0].get_measured_y_positions(), "mo",
+                     label=name)
             name = "%s position" % self.nodes[3].get_type()
-            plt.plot(self.nodes[3].get_measured_x_positions(), self.nodes[3].get_measured_y_positions(), "co", label=name)
+            plt.plot(self.nodes[3].get_measured_x_positions(), self.nodes[3].get_measured_y_positions(), "co",
+                     label=name)
 
             # Final position line plot
             xs = [self.nodes[0].get_x_pos(), self.nodes[3].get_x_pos()]
             ys = [self.nodes[0].get_y_pos(), self.nodes[3].get_y_pos()]
             plt.plot(xs, ys, 'b', label='Target line')
 
-            #Plot Anchor Positions
+            # Plot Anchor Positions
             plt.plot(-3, 2, 'x', label="Anchor position", color='r', mew=4, ms=7)  # number 1
             plt.plot(3, 0, 'x', color='r', mew=4, ms=7)  # number 2
             plt.plot(-2, -3, 'x', color='r', mew=5, ms=7)  # number 3
             plt.axis([-5, 5, -5, 6], aspect=1)
             plt.legend(loc='lower right', numpoints=1)
 
-
         elif alignnbr == 2:
-            plt.figure(1)#Plot for path.
+            plt.figure(1)  # Plot for path.
             name = "%s position" % self.nodes[1].get_type()
             name1 = "%s position" % "Target"
             path = "%s path" % self.nodes[1].get_type()
@@ -325,19 +324,20 @@ class MainController():
             plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(),
                      'r')
             plt.plot(self.nodes[2].get_corrected_x_positions(), self.nodes[2].get_corrected_y_positions(), "ko")
-            #Plot target positions
+            # Plot target positions
             plt.plot(self.nodes[1].get_target_x_positions_from_controls(),
                      self.nodes[1].get_target_y_positions_from_controls(), "o", mfc='none', mec='#00bb00', label=name1)
             plt.plot(self.nodes[2].get_target_x_positions_from_controls(),
                      self.nodes[2].get_target_y_positions_from_controls(), "o", mfc='none', mec='#00bb00')
-            #Plotting final positions
+            # Plotting final positions
             if (len(self.nodes[1].get_corrected_x_positions())) > 0:
                 plt.plot(self.nodes[1].get_corrected_x_positions()[len(self.nodes[1].get_corrected_x_positions()) - 1],
                          self.nodes[1].get_corrected_y_positions()[len(self.nodes[1].get_corrected_x_positions()) - 1],
                          "yo", label='Final position')
             if (len(self.nodes[2].get_corrected_x_positions())) > 0:
                 plt.plot(self.nodes[2].get_corrected_x_positions()[len(self.nodes[2].get_corrected_x_positions()) - 1],
-                         self.nodes[2].get_corrected_y_positions()[len(self.nodes[2].get_corrected_x_positions()) - 1], "yo")
+                         self.nodes[2].get_corrected_y_positions()[len(self.nodes[2].get_corrected_x_positions()) - 1],
+                         "yo")
 
             # Plot base and end positions
             name = "%s position" % self.nodes[0].get_type()
@@ -352,7 +352,7 @@ class MainController():
             ys = [self.nodes[0].get_y_pos(), self.nodes[3].get_y_pos()]
             plt.plot(xs, ys, 'b', label='Target line')
 
-            #Plot Anchor positions
+            # Plot Anchor positions
             plt.plot(-3, 2, 'x', label="Anchor position", color='r', mew=4, ms=7)  # number 1
             plt.plot(3, 0, 'x', color='r', mew=4, ms=7)  # number 2
             plt.plot(-2, -3, 'x', color='r', mew=5, ms=7)  # number 3
@@ -360,57 +360,60 @@ class MainController():
             plt.legend(loc='lower right', numpoints=1)
 
             plt.figure(2)  # Plot for controls
-            #Exectimesstuff might not always match dimensions of controls and will not then be plotted.
-            #(Fix this by making a new terminating function that makes sure that the iteration is completed before exit
-            if (len(self.exectimestuff) == len(self.nodes[1].get_control_x_history())):
+            # Exectimesstuff might not always match dimensions of controls and will not then be plotted.
+            # (Fix this by making a new terminating function that makes sure that the iteration is completed before exit
+            if len(self.exectimestuff) == len(self.nodes[1].get_control_x_history()):
                 plt.plot(self.exectimestuff, self.nodes[1].get_control_x_history(), 'r', label='Velocity')
                 plt.plot(self.exectimestuff, self.nodes[1].get_control_x_history(), 'rx')
                 plt.plot(self.exectimestuff, self.nodes[1].get_control_z_history(), 'b', label='Angular velocity')
                 plt.plot(self.exectimestuff, self.nodes[1].get_control_z_history(), 'bx')
-            if (len(self.exectimestuff) == len(self.nodes[2].get_control_x_history())):
+            if len(self.exectimestuff) == len(self.nodes[2].get_control_x_history()):
                 plt.plot(self.exectimestuff, self.nodes[2].get_control_x_history(), 'r')
                 plt.plot(self.exectimestuff, self.nodes[2].get_control_x_history(), 'rx')
                 plt.plot(self.exectimestuff, self.nodes[2].get_control_z_history(), 'b')
                 plt.plot(self.exectimestuff, self.nodes[2].get_control_x_history(), 'bx')
             plt.legend()
 
-
         plt.show()
-
 
     def terminator(self):
         """
         On Ctrl-C terminate
         :return:
         """
-        self.plot_on_termn(self.coordinate) #Plot on terminate
+        self.plot_on_termn(self.alignMethod)  # Plot on terminate
 
-
-
-
-
-    # Find correctposition for robot
     def correct_pos(self, robot):
+        """
+        Find correct_pos for given robot. This is the target function for align 1(Iterative coordination algorithm).
+        :param robot:
+        :return:
+        """
         correct_position = np.array([], dtype=np.float32)
         left = robot.get_left_neighbor()
         right = robot.get_right_neighbor()
         okposleft = False
         okposright = False
-        while not (okposleft):
+        while not okposleft:
             lneigh = np.array(self.nodes[left].measure_coordinates(), dtype=np.float32)
-            if (np.size(lneigh) == 2):
+            if np.size(lneigh) == 2:
                 okposleft = True
 
-        while not (okposright):
+        while not okposright:
             rneigh = np.array(self.nodes[right].measure_coordinates(), dtype=np.float32)
-            if (np.size(rneigh) == 2):
+            if np.size(rneigh) == 2:
                 okposright = True
 
         correct_position = (lneigh + rneigh) / 2  # Calculates correct position
         return correct_position
 
-    # Move a robot from point A to B
     def move_a_to_b(self, robot, target):
+        """
+        Move a robot from point A to B. This is the sequential movement algorithm.
+        :param robot:
+        :param target:
+        :return: Recorded positions, used for plotting.
+        """
         print "Moving , activerobot: ", robot
         initial_pos = np.array(robot.measure_coordinates(), dtype=np.float32)
         robot.drive_forward(0.2)
@@ -419,9 +422,18 @@ class MainController():
         return robot.get_corrected_positions
 
     def run_next_segment(self, robot, previous_pos, target_pos):
+        """
+        Moves a robot in a segment.
+        :param robot:
+        :param previous_pos:
+        :param target_pos:
+        :return:
+        """
+
         target = target_pos
         current = np.array(robot.measure_coordinates(), dtype=np.float32)
 
+        # If not close enough to target
         if (not (((np.absolute(target[0] - current[0])) <= 0.1) & (
                     (np.absolute(target[1] - current[1])) <= 0.1))):
             length = math.sqrt(math.pow((target[0] - current[0]), 2) + math.pow((target[1] - current[1]), 2))
@@ -431,11 +443,12 @@ class MainController():
                 robot.drive_forward(length)
             else:
                 robot.rotate(deg)
-                robot.drive_forward(0.2) #0.1
+                robot.drive_forward(0.2)
             self.run_next_segment(robot, current, target)
         else:
             return robot
 
+    # Calculates angle that a robot should turn, given target, current and previous pos.
     def calculate_angle(self, previous_pos, current_pos, target_pos):
         previous = previous_pos
         current = current_pos
@@ -459,11 +472,7 @@ class MainController():
                     direction = 1
                 else:
                     direction = -1
-        """
-        # Calculate degrees to turn
-        theta = np.arccos(np.sum((target-fst)*(snd-fst))/(np.sqrt(np.sum((target-fst)**2))*np.sqrt(np.sum((snd-fst)**2))))
-        return direction*theta
-        """
+
         dot_prod = (current[0] - previous[0]) * (target[0] - previous[0]) + (current[1] - previous[1]) * (
             target[1] - previous[1])
         lengthA = math.sqrt(math.pow((current[0] - previous[0]), 2) + math.pow((current[1] - previous[1]), 2))
@@ -475,7 +484,7 @@ class MainController():
         print rospy.get_name(), "Turningdegree: ", theta
         print rospy.get_name(), "Direction: ", direction
 
-        turning_degree = direction * theta  # (np.pi - math.asin(lengthB*(math.sin(theta)/lengthToTarget)))
+        turning_degree = direction * theta
 
         return turning_degree
 
