@@ -1,1 +1,0 @@
-First version of controller for SSYX02-16-27 bachelor's thesis. Rosrun Measure.py, Controller.py and PositionListener.py. To move robot to desired position, in terminal type 'rostopic pub /moveTo rospy_tutorials/Floats [x,y]'. 
