@@ -41,15 +41,15 @@ def get_rot_dir(theta, curr_pos, tar_pos):
             direction = -1
     return direction
 
-"""
-def get_trans_magn_2(current, target, t):
-    ""#"
 
+def get_trans_magn_2(current, target, t):
+    """
+    Alternative function for calculating X. Not finished.
     :param current:
     :param target:p
     :param t:
     :return:
-    ""#"
+    """
     length_to_target = np.linalg.norm(target - current)
 
     # X function of Z and length
@@ -67,14 +67,14 @@ def get_trans_magn_2(current, target, t):
 
 
 def get_rot_magn_2(theta, current, target, t):
-    ""#"
-
+    """
+    Alternative functino for calculating Z. Not finished.
     :param theta:
     :param current:
     :param target:
     :param t:
     :return:
-    ""#"
+    """
     direction = get_rot_dir(theta, current, target)
 
     a = np.array([[np.cos(theta), np.sin(theta)],
@@ -101,7 +101,7 @@ def get_rot_magn_2(theta, current, target, t):
     else:
         print "z was zero"
         za = 0
-        print ('length_to_target:', str(length_to_target))
+        print ('length_to_targetof:', str(length_to_target))
     print za
 
     if length_to_target < 0.05:
@@ -109,7 +109,7 @@ def get_rot_magn_2(theta, current, target, t):
     else:
         z = phi / t * za * direction
     return z
-"""
+
 
 
 class Controls(object):
